@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name           extend-luogu
+// @name           Jayun's ExLuogu
 // @namespace      http://tampermonkey.net/
 // @version        3.0.0
 //
@@ -19,6 +19,8 @@
 // @require        https://cdn.luogu.com.cn/js/jquery-2.1.1.min.js
 // @require        https://cdn.bootcdn.net/ajax/libs/js-xss/0.3.3/xss.min.js
 // @require        https://cdn.bootcdn.net/ajax/libs/marked/2.0.1/marked.min.js
+// @require        https://cdn.luogu.com.cn/js/highcharts.js
+// @require        https://cdn.luogu.com.cn/js/highcharts-more.js
 // @require        https://cdn.jsdelivr.net/gh/ForkKILLET/TM-dat@main/TM-dat.user.js
 //
 // @grant          GM_addStyle
@@ -283,21 +285,10 @@ const mod = {
     reg_board: (name, info, data, func, styl) => mod.reg(
         name, info, "@/", data,
         arg => {
-            const icon_b = `
-                <svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 0 136.14 30.56">
-                    <g transform="translate(1.755, 0)" fill="#00a0d8">
-                        <g>
-                            <path d="M5.02-33.80L34.56-33.80L34.07-28.62L16.96-28.62L15.93-21.92L31.97-21.92L31.48-16.74L14.85-16.74L13.82-8.42L31.97-8.42L31.48-3.24L2.43-3.24L6.59-31.75L5.02-33.80Z" transform="translate(-4.14, 33.9)"></path>
-                            <path d="M7.34-32.29L5.78-33.80L16.63-33.80L21.33-25.00L27.54-32.78L26.51-33.80L38.93-33.80L25.49-18.79L34.78-3.24L24.41-3.24L19.76-12.58L11.99-3.24L1.62-3.24L15.12-18.79L7.34-32.29Z" transform="translate(27.23, 33.9)"></path>
-                            <path d="M4.00-33.80L16.42-33.80L12.80-8.42L32.99-8.42L32.51-3.24L5.56-3.24Q4.00-3.24 3.21-4.27Q2.43-5.29 2.43-6.86L2.43-6.86L5.56-31.75L4.00-33.80Z" transform="translate(63.8, 33.9)"></path>
-                            <path d="M38.83-33.80L37.80-25.00L27.43-25.00L27.92-28.62L15.50-28.62L12.91-8.42L25.33-8.42L25.87-14.63L22.73-19.82L36.72-19.82L34.67-3.24L5.62-3.24Q4.86-3.24 4.21-3.51Q3.56-3.78 3.10-4.27Q2.65-4.75 2.48-5.43Q2.32-6.10 2.54-6.86L2.54-6.86L6.16-33.80L38.83-33.80Z" transform="translate(95.6, 33.9)"></path>
-                        </g>
-                    </g>
-            </svg>
-            `
+            const icon_b = `<center><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="mord text sizing reset-size6 size11"><span class="mord texttt">EXLG</span></span></span></span></span></center>`
             let $board = $("#exlg-board")
             if (! $board.length) $board = $(`
-                <div class="lg-article" id="exlg-board" exlg="exlg"><h2>${icon_b}</h2></div>
+                <div class="lg-article" id="exlg-board" exlg="exlg"></div>
             `)
                 .prependTo(".lg-right.am-u-md-4")
             func({ ...arg, $board: $(`<div></div>`).appendTo($board) })
@@ -439,53 +430,29 @@ mod.reg_hook_new("dash-bridge", "控制桥", "@/.*", {
         info: [ "The website to open when clicking the exlg button", "点击 exlg 按钮时打开的网页" ]
     }
 }, ({ msto, args }) => {
-    const $btn = $(`<div id="exlg-dash" exlg="exlg">exlg</div>`)
+    const source = msto.source
+    $(`<div id="exlg-dash" exlg="exlg"><svg data-v-78704ac9="" data-v-303bbf52="" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="user-cog" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" class="svg-inline--fa fa-cog fa-w-20"><path data-v-78704ac9="" data-v-303bbf52="" fill="currentColor" d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z" class=""></path></svg> 设置</div>|
+     </>`)
         .prependTo(args)
-        .css("backgroundColor", {
-            tcs: "cornflowerblue",
-            debug: "steelblue",
-            gh_index: "darkblue",
-            gh_bundle: "darkslateblue"
-        }[msto.source])
-        .bind("contextmenu", () => false)
-        .on("mousedown", (e) => {
-            if (! e.button)
-                uindow.exlg.dash = uindow.open({
-                    tcs: "https://service-otgstbe5-1305163805.sh.apigw.tencentcs.com/release/exlg-setting",
-                    debug: "localhost:1634/dashboard",
-                    gh_index: "https://extend-luogu.github.io/exlg-setting/index.html",
-                    gh_bundle: "https://extend-luogu.github.io/exlg-setting/bundle.html",
-                }[msto.source])
-            else if (e.button === 2) {
-                msto.source = {
-                    tcs: "debug",
-                    debug: "gh_index",
-                    gh_index: "gh_bundle",
-                    gh_bundle: "tcs",
-                }[msto.source]
-                $btn.css("backgroundColor", {
-                    tcs: "cornflowerblue",
-                    debug: "steelblue",
-                    gh_index: "darkblue",
-                    gh_bundle: "darkslateblue"
-                }[msto.source])
-            }
-        })
-        .css("margin-top", args.hasClass("nav-container") ? "5px" : "0px")
+        .on("click", () => uindow.exlg.dash = uindow.open({
+            tcs: "https://service-otgstbe5-1305163805.sh.apigw.tencentcs.com/release/exlg-setting",
+            debug: "localhost:1634/dashboard",
+            gh_index: "https://extend-luogu.github.io/exlg-setting/index.html",
+            gh_bundle: "https://extend-luogu.github.io/exlg-setting/bundle.html",
+        }[source]))
 }, (e) => {
-    const $tmp = $(e.target).find(".user-nav, .nav-container")
-    if ($tmp.length) return { result: ($tmp.length), args: ($tmp) } // Note: 直接用三目运算符不用 if 会触发 undefined 的 tagName 不知道为什么
+    const $tmp = $(e.target).find(".user-nav > nav > span > div > div > footer")
+    if ($tmp.length) return { result: ($tmp.length), args: ($tmp[0].tagName === "DIV" ? $($tmp[0].firstChild) : $tmp) } // Note: 直接用三目运算符不用 if 会触发 undefined 的 tagName 不知道为什么
     else return { result: 0 }
-}, () => $("nav.user-nav, div.user-nav > nav, .nav-container"), `
+}, () => $("nav.user-nav > span > div > div > footer, div.user-nav > nav > span > div > div > footer"), `
     /* dash */
     #exlg-dash {
         margin-right: 5px;
         position: relative;
         display: inline-block;
-        padding: 1px 10px 3px;
-        color: white;
+        padding: 1px 1px 3px;
+        color: #6c757d;
         border-radius: 6px;
-        box-shadow: 0 0 7px dodgerblue;
         cursor: pointer;
     }
     #exlg-dash > .exlg-warn {
@@ -591,6 +558,8 @@ mod.reg_hook_new("dash-bridge", "控制桥", "@/.*", {
     .exlg-difficulty-color.color-5 { color: rgb(52, 152, 219)!important; }
     .exlg-difficulty-color.color-6 { color: rgb(157, 61, 207)!important; }
     .exlg-difficulty-color.color-7 { color: rgb(14, 29, 105)!important; }
+
+    button { margin-bottom: 3px !important; }
 `)
 
 mod.reg_chore("update", "检查更新", "1D", mod.path_dash_board, null, () => {
@@ -972,6 +941,313 @@ mod.reg("benben", "全网犇犇", "@/", {
             unsafeWindow.loadFeed()
         })
 })
+
+mod.reg("rand-footprint", "随机足迹", "@/", {
+    total: { ty: "number" },
+    checked: { ty: "boolean" },
+    Usersname: {
+        ty: "tuple",
+        lvs: [
+            { ty: "string", dft: false, strict: true, repeat: 50 }
+        ],
+        priv: true
+    },
+    Usn: {
+        ty: "tuple",
+        lvs: [
+            { ty: "string", dft: false, strict: true, repeat: 50 }
+        ],
+        priv: true
+    }
+}, ({msto}) => {
+    let $board = $("<div class='am-u-md-3' name='exlg-rand-board'></div>");
+    $board.html(`
+        <div class='lg-article exlg-index-stat'>
+            <h2>足迹</h2>
+            <div class="am-input-group am-input-group-primary am-input-group-sm">
+                <input type="text" class="am-form-field" placeholder="随机跳转用户通过的题目" name="username-passed" id="search-user-passed">
+            </div>
+            <p>
+                <button class="am-btn am-btn-danger am-btn-sm" id="add-user">添加</button>
+                <button class="am-btn am-btn-primary am-btn-sm" id="remove-user">移除</button>
+                <button class="am-btn am-btn-group am-btn-sm" id="empty-user">一键清空</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="goto-users-passed">跳转</button>
+                <input type="checkbox" ${msto.checked? "checked=true": ""} id="check-ac">
+                包括已 AC 题目
+            </p>
+        </div>
+    `);
+    $("div.am-u-md-3").after($board);
+    let $nameboard = $(`
+        <div class="am-u-md-2" id="exlg-rand-nameboard">
+            <div class="lg-article exlg-index-stat exlg-editor">
+            </div>
+        </div>
+    `);
+    $board.after($nameboard);
+    if (msto.total == null) msto.total = 0;
+    const writename = () => {
+        $(".exlg-editor").empty();
+        for (let i = 0; i < msto.total; i++)
+        {
+            $(`<p>@<a href="/user/${msto.Usersname[i]}">${msto.Usn[i]}</a></p>`).appendTo(".exlg-editor");
+        }
+    }
+    writename();
+    function isIndexOf (arr1, id) {
+        for (let i = 0; i < msto.total; i++)
+            if(arr1[i] === id) return true;
+        return false;
+    }
+    const add = () => {
+        $adduser.prop("disabled", true)
+        if (msto.total >= 50)
+        {
+            $adduser.prop("disabled", false)
+            lg_alert("请不要超过 50 人哦")
+        }
+        $.get("/api/user/search?keyword=" + $("[name=username-passed]").val(), res => {
+            if (! res.users[0]) {
+                $adduser.prop("disabled", false)
+                lg_alert("无法找到指定用户")
+            }
+            else {
+                let usern = res.users[0].uid;
+                if (!isIndexOf(msto.Usersname, `${usern}`)) msto.Usersname[msto.total] = `${usern}`, msto.Usn[msto.total++] = res.users[0].name;
+                writename();
+                $adduser.prop("disabled", false)
+            }
+        })
+    }
+    const rem = () => {
+        $removeuser.prop("disabled", true)
+        $.get("/api/user/search?keyword=" + $("[name=username-passed]").val(), res => {
+            if (!res.users[0]) {
+                $removeuser.prop("disabled", false)
+                lg_alert("无法找到指定用户")
+            }
+            else {
+                let usern = res.users[0].uid;
+                for (let i = 0, flag = 0; i < msto.total; i++)
+                {
+                    if (msto.Usersname[i] === `${usern}`) flag = 1;
+                    if (flag)
+                    {
+                        if(msto.Usn[i + 1] !== false) msto.Usn[i] = msto.Usn[i + 1];
+                        if(msto.Usersname[i + 1] !== false) msto.Usersname[i] = msto.Usersname[i + 1];
+                    }
+                }
+                msto.total--;
+                writename();
+                $removeuser.prop("disabled", false)
+            }
+        })
+    }
+    function  isIntersect(arr1, arr2) {
+        let newarr = arr1.filter( x => {
+			return arr2.some( y => {
+				return x.pid == y.pid;
+			})
+		});
+        return newarr.length >= arr2.length;
+    }
+    function isInclude(arr1, pid)
+    {
+        var newArr = arr1.filter(function(p){
+            return p.pid === pid;
+        });
+        return newArr.length != 0;
+    }
+    const rand_jump = async () => {
+        $randjump.prop("disabled", true);
+        let isAC = msto.checked;
+        if (msto.total == 0) { $randjump.prop("disabled", false); lg_alert("您还未选择用户"); return; }
+        let useruid = msto.Usersname[Math.floor(Math.random() * msto.total)];
+        let myres = await lg_content(`/user/${uindow._feInjection.currentUser.uid}`);
+        let Canuser = [];
+        for (let i = 0; i < msto.total; i++)
+        {
+            let res = await lg_content(`/user/${msto.Usersname[i]}`);
+            let pbnum = res.currentData.user.passedProblemCount;
+            if (pbnum != 0 && typeof res.currentData.passedProblems != "undefined")
+            {
+                if (isAC || !isIntersect(myres.currentData.passedProblems, res.currentData.passedProblems))Canuser.push(msto.Usersname[i]);
+            }
+        }
+        if (Canuser.length == 0) { $randjump.prop("disabled", false); lg_alert("这些用户都开了完全隐私保护或还未通过题目或只做了您所做过的题目"); return; }
+        let res = await lg_content(`/user/${useruid}`);
+        let pbnum = res.currentData.user.passedProblemCount;
+        while (pbnum == 0 || typeof res.currentData.passedProblems == "undefined" || (!isAC && isIntersect(myres.currentData.passedProblems, res.currentData.passedProblems)))
+        {
+            useruid = msto.Usersname[Math.floor(Math.random() * msto.total)];
+            res = await lg_content(`/user/${useruid}`);
+            pbnum = res.currentData.user.passedProblemCount;
+        }
+        let Pro = res.currentData.passedProblems[Math.floor(Math.random() * pbnum)].pid;
+        while (!isAC && isInclude(myres.currentData.passedProblems, Pro)) {Pro = res.currentData.passedProblems[Math.floor(Math.random() * pbnum)].pid;}
+        $randjump.prop("disabled", false);
+        location.href = `/problem/${Pro}`;
+    }
+
+    const $adduser = $("#add-user").on("click", add), $removeuser = $("#remove-user").on("click", rem);
+    $("#empty-user").on("click", () => {
+        msto.total = 0; writename();
+    })
+    $("#check-ac").on("click", () => {
+        msto.checked = $("#check-ac").get(0).checked;
+        console.log(msto.checked);
+    })
+    const $randjump = $("#goto-users-passed").on("click", rand_jump);
+    $("#search-user-passed").keydown(e => { e.key === "Enter" && add() })
+}, `
+.exlg-index-stat{
+    height: 190px;
+}
+#exlg-rand-nameboard{
+    line-height: 0.5 !important;
+}
+.exlg-editor{
+    overflow: auto;
+}
+`)
+
+mod.reg("develop-training", "训练强化", "@/", null, () => {
+    let $board = $("<div class='am-u-md-4' name='exlg-train-board'></div>");
+    $board.html(`
+        <div class='lg-article exlg-index-stat'>
+            <h2>强化训练</h2>
+            <p>
+                单题：
+                <button class="am-btn am-btn-danger am-btn-sm" id="constructive-problem">构造题</button>
+                <button class="am-btn am-btn-primary am-btn-sm" id="dynamic-problem">DP 题</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="single-problem">练习题</button>
+            </p>
+            <p>
+                比赛：
+                <button class="am-btn am-btn-warning am-btn-sm" id="practice-contest">练习赛</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest">CF 制</button>
+                <button class="am-btn am-btn-danger am-btn-sm" id="simulation-contest">模拟赛</button>
+            </p>
+        </div>
+    `);
+
+    $("#exlg-rand-nameboard").after($board);
+}, ``)
+
+let configs;
+mod.reg("exchart", "ex图表", "@/", null, () => {
+    let $board = $(`<div class="am-g" id="ex-chart"></div>`);
+    $board.appendTo($(".lg-index-content.am-center"));
+    $board.prev().insertAfter($board);
+    let $chart = $("div.am-u-md-9");
+    let $hc = $(`<div id="container3" class="am-u-md-3-5 am-text-center" style=" height:180px; margin-right: 20px"></div>`);
+    $chart.appendTo($board);
+    $chart.removeClass();
+    $chart.addClass("am-u-md-12");
+    $("#container").removeClass("am-u-md-6");
+    $("#container").addClass("am-u-md-4-5");
+    $("#container2").removeClass("am-u-md-6");
+    $("#container2").addClass("am-u-md-4-5");
+    $("#container2").after($hc);
+    let Config = async() => {
+        let u = await lg_content("https://www.luogu.com.cn/paste?_contentOnly");
+        let flag = 0, pageid;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 12) !== "#ExChartData") return;
+            let k = u.data;
+            pageid = u.id;
+            configs = JSON.parse(k.substr(12, k.lentgh));
+            flag = 1;
+            return;
+        });
+        if (configs) {
+            var dateStart = new Date(configs.date);
+            var dateEnd = new Date();
+            var difVal = Math.floor(Math.abs(dateEnd - dateStart) / (1000 * 60 * 60 * 24));
+            if (configs.constructive_problem >= difVal * 5)
+                configs.constructive_problem -= difVal * 5;
+            else configs.constructive_problem = 0;
+
+            if (configs.dynamic_problem >= difVal * 5)
+                configs.dynamic_problem -= difVal * 5;
+            else configs.dynamic_problem = 0;
+
+            if (configs.single_problem >= difVal * 5)
+                configs.single_problem -= difVal * 5;
+            else configs.single_problem = 0;
+
+            if (configs.practice_contest >= difVal * 5)
+                configs.practice_contest -= difVal * 5;
+            else configs.practice_contest = 0;
+
+            if (configs.cf_multiple_contest >= difVal * 5)
+                configs.cf_multiple_contest -= difVal * 5;
+            else configs.cf_multiple_contest = 0;
+
+            if (configs.simulation_contest >= difVal * 5)
+                configs.simulation_contest -= difVal * 5;
+            else configs.simulation_contest = 0;
+
+            configs.date = dateEnd.getFullYear() + "-" + (dateEnd.getMonth() + 1) + "-" + dateEnd.getDate();
+            new Promise((r) => {
+                $.ajax({
+                    type: "POST",
+                    url: `https://www.luogu.com.cn/paste/edit/${pageid}`,
+                    beforeSend: function (request) {
+                        request.setRequestHeader(
+                            "x-csrf-token",
+                            $("meta[name='csrf-token']")[0].content
+                        );
+                    },
+                    contentType: "application/json;charset=UTF-8",
+                    data: JSON.stringify({
+                        public: false,
+                        data: "#ExChartData" + JSON.stringify(configs),
+                    }),
+                    success: () => r(),
+                });
+            });
+        }
+        else{
+            let date = new Date;
+            date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+            configs = {"constructive_problem": 1200, "dynamic_problem": 1200, "single_problem": 1200, "practice_contest": 1200, "cf_multiple_contest": 1200, "simulation_contest": 0, "date": date};
+            new Promise((r) => {
+                $.ajax({
+                    type: "POST",
+                    url: `https://www.luogu.com.cn/paste/new`,
+                    beforeSend: function (request) {
+                        request.setRequestHeader(
+                            "x-csrf-token",
+                            $("meta[name='csrf-token']")[0].content
+                        );
+                    },
+                    contentType: "application/json;charset=UTF-8",
+                    data: JSON.stringify({
+                        public: false,
+                        data: "#ExChartData" + JSON.stringify(configs),
+                    }),
+                    success: () => r(),
+                });
+            });
+        }
+        $("#container").empty();
+        $("#container2").empty();
+        $('#container').highcharts({"title":{"text":"","floating":true},"chart":{"backgroundColor":"rgba(0,0,0,0)"},"legend":{"enabled":false},"xAxis":{"categories":["Nov","Dec","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"],"floating":true,"minTickInterval":2},"yAxis":[{"labels":{"format":"{value}","style":{"color":"Highcharts.getOptions().colors[1]"}},"title":{"text":"\u7d2f\u79ef\u901a\u8fc7","style":{"color":"Highcharts.getOptions().colors[1]"}},"floor":836},{"labels":{"format":"{value}","style":{"color":"Highcharts.getOptions().colors[3]"},"enabled":false},"title":{"text":"\u65b0\u901a\u8fc7","style":{"color":"Highcharts.getOptions().colors[3]"},"enabled":false},"opposite":true}],"tooltip":{"shared":true},"series":[{"name":"\u7d2f\u79ef\u901a\u8fc7\u6570","type":"area","data":[841,875,913,939,964,980,1014,1024,1040,1072,1072,1104]},{"name":"\u5f53\u6708\u901a\u8fc7\u6570","type":"column","data":[29,34,38,27,26,17,34,10,17,34,0,32],"yAxis":1}],"credits":{"enabled":false}});
+        $('#container2').highcharts({"title":{"text":"","floating":true},"chart":{"backgroundColor":"rgba(0,0,0,0)"},"legend":{"enabled":false},"xAxis":{"categories":["11-1","11-2","11-3","11-4","11-5","11-6","11-7","11-8","11-9","11-10","11-11","11-12","11-13","11-14","11-15","11-16","11-17","11-18","11-19","11-20","11-21","11-22","11-23","11-24","11-25","11-26","11-27","11-28","11-29","11-30"],"floating":true,"minTickInterval":5},"yAxis":[{"labels":{"format":"{value}","style":{"color":"Highcharts.getOptions().colors[1]"},"enabled":false},"title":{"text":"\u7d2f\u79ef\u901a\u8fc7","style":{"color":"Highcharts.getOptions().colors[1]"},"enabled":false},"floor":1099},{"labels":{"format":"{value}","style":{"color":"Highcharts.getOptions().colors[3]"}},"title":{"text":"\u65b0\u901a\u8fc7","style":{"color":"Highcharts.getOptions().colors[3]"}},"opposite":true}],"tooltip":{"shared":true},"series":[{"name":"\u7d2f\u79ef\u901a\u8fc7\u6570","type":"area","data":[1104,1105,1105,1105,1105,1105,1105,1105,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null]},{"name":"\u5f53\u65e5\u901a\u8fc7\u6570","type":"column","data":[0,1,0,0,0,0,0,0,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],"yAxis":1}],"credits":{"enabled":false}});
+        $("#container3").highcharts({"title":{"text":"","floating":true},"chart":{"backgroundColor":"rgba(0,0,0,0)","type":"area","polar":true},"legend":{"enabled":false},"tooltip":{"shared":true},"xAxis": {"categories": ["构造题", "DP 题", "练习题", "练习赛", "CF 制","模拟赛"],"tickmarkPlacement": "on","lineWidth": 0},"yAxis": {"gridLineInterpolation": "polygon","lineWidth": 0,"min": 0},"series": [{"name": "你的积分","data": [configs.constructive_problem, configs.dynamic_problem, configs.single_problem, configs.practice_contest, configs.cf_multiple_contest, configs.simulation_contest],"pointPlacement": "on"}],"exporting":{"enabled":false},"credits":{"enabled":false}});
+    };
+    Config();
+}, `
+.am-u-md-4-5 {
+    width: 37.5%
+}
+.am-u-md-3-5 {
+    width: 25%
+}
+`)
+
 
 mod.reg("rand-problem-ex", "随机跳题ex", "@/", {
     exrand_difficulty: {
@@ -1447,39 +1723,27 @@ mod.reg("hide-solution", "隐藏题解", "@/problem/solution/.*", {
     hidesolu: { ty: "boolean", dft: false, info: ["Hide Solution", "隐藏题解"] }
 }, ({ msto }) => (msto.hidesolu) ? (GM_addStyle(".item-row { display: none; }")) : "memset0珂爱")
 
-// let submission_color_tmp = {
-//   complete: true,
-//   difficulty_list: []
-// }
+let lst_page = -1
+mod.reg_hook_new("submission-color", "记录难度可视化", "@/record/list.*", null, () => {
+    const func = async() => {
+        if ($(".exlg-difficulty-color").length) return;
+        let u = await lg_content(uindow.location.href)
+        const dif = u.currentData.records.result.map((u) => u.problem.difficulty)
+        $("div.problem > div > a > span.pid").each((i, e, $e = $(e)) => {
+            // console.log(u.currentData.records.result[i].problem.pid, i)
+            $e.removeClass();
+            $e.addClass("pid").addClass("exlg-difficulty-color").addClass(`color-${dif[i]}`)
+        })
+    }
+    func()
+}, (e) => {
+    if(!uindow.location.href.match("www.luogu.com.cn/record/list.*")) return {result: false}
+    let now_page = uindow.location.href.slice(37);
+    if (now_page !== lst_page) {lst_page = now_page; return {result: !$("div.problem > div > a > span.pid").hasClass("exlg-difficulty-color")};}
 
-// mod.reg_hook_new("submission-color", "记录难度可视化", "@/record/list.*", null, () => {
-//     /*
-//     if ($(".exlg-difficulty-color").length) return
-//     const u = uindow._feInjection
-//     const dif = u.currentData.records.result.map((u) => u.problem.difficulty)
-//     $("div.problem > div > a > span.pid").each((i, e, $e = $(e)) => {
-//         $e.addClass("exlg-difficulty-color").addClass(`color-${dif[i]}`)
-//     })
-//     //* /
-//     const dif = (pid) => {
-//     }
-// }, (e) => {
-//     if ()
-//
-// const lg_content = url => new Promise((res, rej) =>
-//    $.get(url + (url.includes("?") ? "&" : "?") + "_contentOnly=1", data => {
-//         if (data.code !== 200) rej(`Requesting failure code: ${ res.code }.`)
-//         res(data)
-//     })
-// )
-//
-//
-//
-//
-//
-//     return $("div.problem > div > a > span.pid").length && ! $(".exlg-difficulty-color").length
-// }
-// )
+}, () => [], ``
+)
+
 
 mod.reg("keyboard-and-cli", "键盘操作与命令行", "@/.*", {
     lang: { ty: "enum", dft: "en", vals: [ "en", "zh" ] }
@@ -1752,7 +2016,7 @@ mod.reg("keyboard-and-cli", "键盘操作与命令行", "@/.*", {
 
 mod.reg_board("search-user", "查找用户名", null, ({ $board }) => {
     $board.html(`
-        <h3>查找用户</h3>
+        <h2>查找用户</h2>
         <div class="am-input-group am-input-group-primary am-input-group-sm">
             <input type="text" class="am-form-field" placeholder="例：kkksc03，可跳转站长主页" name="username" id="search-user-input">
         </div>
