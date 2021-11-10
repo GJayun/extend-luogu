@@ -1125,7 +1125,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             <p>
                 比赛：
                 <button class="am-btn am-btn-warning am-btn-sm" id="practice-contest">练习赛</button>
-                <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest">CF 制</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest">CF 题</button>
                 <button class="am-btn am-btn-danger am-btn-sm" id="simulation-contest">模拟赛</button>
             </p>
         </div>
@@ -1134,7 +1134,232 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
     $("#exlg-rand-nameboard").after($board);
 }, ``)
 
-let configs;
+let NewConfig = (a, configs) => {
+    new Promise((r) => {
+        $.ajax({
+            type: "POST",
+            url: `https://www.luogu.com.cn/paste/new`,
+            beforeSend: function (request) {
+                request.setRequestHeader(
+                    "x-csrf-token",
+                    $("meta[name='csrf-token']")[0].content
+                );
+            },
+            contentType: "application/json;charset=UTF-8",
+            data: JSON.stringify({
+                public: false,
+                data: a + JSON.stringify(configs),
+            }),
+            success: () => r(),
+        });
+    });
+}
+
+let EditConfig = (a, configs, pageid) => {
+    new Promise((r) => {
+        $.ajax({
+            type: "POST",
+            url: `https://www.luogu.com.cn/paste/edit/${pageid}`,
+            beforeSend: function (request) {
+                request.setRequestHeader(
+                    "x-csrf-token",
+                    $("meta[name='csrf-token']")[0].content
+                );
+            },
+            contentType: "application/json;charset=UTF-8",
+            data: JSON.stringify({
+                public: false,
+                data: a + JSON.stringify(configs),
+            }),
+            success: () => r(),
+        });
+    });
+}
+
+let viewset, configs;
+
+let date = new Date;
+date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+configs = {"constructive_problem": 1200, "dynamic_problem": 1200, "single_problem": 1200, "practice_contest": 1200, "cf_multiple_contest": 1200, "simulation_contest": 0, "date": date};
+
+viewset = {"constructive_problem":null,"dynamic_problem":null,"single_problem":null,"practice_contest":null,"cf_multiple_contest":null,"simulation_contest":null};
+const grade = [2147483647, 1199, 1399, 1599, 2099, 2599, 2147483647];
+const TimeLong = 1000 * 60 * 60 + 1000;
+mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
+    let View = async() => {
+        let u = await lg_content("https://www.luogu.com.cn/paste?_contentOnly");
+        let flag = 0, pageid1;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 11) !== "#ExViewData") return;
+            let k = u.data;
+            pageid1 = u.id;
+            viewset = JSON.parse(k.substr(11, k.lentgh));
+            flag = 1;
+            return;
+        });
+        if (!flag) NewConfig("#ExViewData", viewset);
+        flag = 0;
+        let pageid2, configs;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 12) !== "#ExChartData") return;
+            let k = u.data;
+            pageid2 = u.id;
+            configs = JSON.parse(k.substr(12, k.lentgh));
+            flag = 1;
+            return;
+        });
+        if (flag) {
+            var dateStart = new Date(configs.date);
+            var dateEnd = new Date();
+            var difVal = Math.floor(Math.abs(dateEnd - dateStart) / (1000 * 60 * 60 * 24));
+            for (var i in configs)
+            {
+                if (i == "date") continue;
+                if (configs[i] >= difVal * 5)
+                    configs[i] -= difVal * 5;
+                else configs[i] = 0;
+            }
+            configs.date = dateEnd.getFullYear() + "-" + (dateEnd.getMonth() + 1) + "-" + dateEnd.getDate();
+            EditConfig("#ExChartData", configs, pageid2);
+        }
+        else NewConfig("#ExChartData", configs);
+
+        flag = 0;
+        let Doing;
+        for (var i in viewset)
+        {
+            if (viewset[i] == null) continue;
+            let nowDate = new Date(), endDate = new Date(viewset[i].date);
+            if (endDate < nowDate)
+            { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid1); break; }
+            flag = 1;
+            Doing = i;
+        }
+
+        const beDoing = (viewset, Doing, pageid) => {
+            $cp = $(`<button data-v-370e72e2="" data-v-43063e73="" type="button" class="lfe-form-sz-middle" data-v-52820d90="" style="border-color: rgb(221, 81, 76); background-color: rgb(221, 81, 76);">取消做题</button>`);
+            $cp.hover(
+                function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
+                function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
+            $cp.prependTo(".operation");
+            $("div.card.padding-default").css("display", "none");
+            $("div.problem-card").css("display", "block");
+
+            const cancelDoing = () => {
+                clearInterval(Timer_board);
+                $cp.remove();
+                $("#timer-board").remove();
+                $("div.card.padding-default").css("display", "block");
+                viewset[Doing] = null;
+                EditConfig("#ExViewData", viewset, pageid);
+            }
+            let nowtime = new Date();
+            let endtime = new Date(viewset[Doing].date);
+            nowtime = endtime.getTime() - nowtime.getTime();
+            let hour = Math.floor(nowtime / (1000*60*60) % 24),
+                minute = Math.floor(nowtime / (1000*60) % 60),
+                sec = Math.floor(nowtime / 1000 % 60);
+            $(`<div data-v-796309f8="" class="card padding-default" id="timer-board" data-v-6febb0e8=""><h2 data-v-796309f8="" class="lfe-h2" >本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}</h2></div>`).prependTo($("section.side"));
+            var Timer_board = setInterval (function () {
+                let nowtime = new Date();
+                let endtime = new Date(viewset[Doing].date);
+                nowtime = endtime.getTime() - nowtime.getTime();
+                if (nowtime <= 0)
+                {
+                    clearInterval(Timer_board);
+                    uindow._feInstance.$swal({
+                        title: "时间结束  您要重写本题吗",
+                        text: "如果不，您将会扣分",
+                        type: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "确定",
+                        cancelButtonText: "取消"
+                    }).then((result) => {
+                        if (result.value) {
+                            var date = new Date();
+                            date = date.getTime() + TimeLong;
+                            $cp.remove();
+                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [uindow._feInjection.currentData.problem.pid]};
+                            EditConfig("#ExViewData", viewset, pageid);
+                            beDoing(viewset, Doing);
+                        } else {
+                            cancelDoing();
+                        }
+                    })
+                }
+                let hour = Math.floor(nowtime / (1000*60*60) % 24),
+                    minute = Math.floor(nowtime / (1000*60) % 60),
+                    sec = Math.floor(nowtime / 1000 % 60);
+                $(`#timer-board > h2`).text(`本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
+            }, 1000);
+            $cp.click(cancelDoing);
+        }
+
+        if (!flag)
+        {
+            if (uindow._feInjection.currentData.problem.score !== uindow._feInjection.currentData.problem.fullScore)
+            {
+                let dif = uindow._feInjection.currentData.problem.difficulty;
+                if (grade[dif] < configs.single_problem) {
+                    uindow._feInstance.$swal({
+                            title: "本题难度低，不予计分",
+                            type: "warning",
+                            showCancelButton: !1,
+                            confirmButtonText: "确定",
+                        }
+                    );
+                }
+                else {
+                    uindow._feInstance.$swal({
+                        title: "您确定要写本题吗",
+                        type: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "确定",
+                        cancelButtonText: "取消"
+                    }).then((result) => {
+                        if (result.value) {
+                            var date = new Date();
+                            date = date.getTime() + TimeLong;
+                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [uindow._feInjection.currentData.problem.pid]};
+                            beDoing(viewset, "single_problem", pageid1);
+                            EditConfig("#ExViewData", viewset, pageid1);
+                        }
+                    })
+                }
+            }
+        }
+        else{
+            let flag = false;
+            let DoingPid;
+            for (var i in viewset[Doing].problem)
+            {
+                if (viewset[Doing].problem[i] === uindow._feInjection.currentData.problem.pid)
+                { flag = true; break; }
+                DoingPid = viewset[Doing].problem[i];
+            }
+            if (!flag) {
+                uindow._feInstance.$swal({
+                    title: "您已经在写其它题了",
+                    text: "2 秒后跳转到您正在写的题目",
+                    type: "warning",
+                    timer: 2000,
+                    showConfirmButton: false,
+                }).then(() =>{
+                    uindow.location = `/problem/${DoingPid}`;
+                })
+            }
+            else {
+                if (Doing === "single_problem" || Doing === "dynamic-problem" || Doing === "constructive-problem"){
+                    beDoing(viewset, Doing, pageid1);
+                }
+            }
+        }
+    };
+    View();
+}, ``)
+
 mod.reg("exchart", "ex图表", "@/", null, () => {
     let $board = $(`<div class="am-g" id="ex-chart"></div>`);
     $board.appendTo($(".lg-index-content.am-center"));
@@ -1161,78 +1386,24 @@ mod.reg("exchart", "ex图表", "@/", null, () => {
             flag = 1;
             return;
         });
-        if (configs) {
+        if (flag) {
             var dateStart = new Date(configs.date);
             var dateEnd = new Date();
             var difVal = Math.floor(Math.abs(dateEnd - dateStart) / (1000 * 60 * 60 * 24));
-            if (configs.constructive_problem >= difVal * 5)
-                configs.constructive_problem -= difVal * 5;
-            else configs.constructive_problem = 0;
-
-            if (configs.dynamic_problem >= difVal * 5)
-                configs.dynamic_problem -= difVal * 5;
-            else configs.dynamic_problem = 0;
-
-            if (configs.single_problem >= difVal * 5)
-                configs.single_problem -= difVal * 5;
-            else configs.single_problem = 0;
-
-            if (configs.practice_contest >= difVal * 5)
-                configs.practice_contest -= difVal * 5;
-            else configs.practice_contest = 0;
-
-            if (configs.cf_multiple_contest >= difVal * 5)
-                configs.cf_multiple_contest -= difVal * 5;
-            else configs.cf_multiple_contest = 0;
-
-            if (configs.simulation_contest >= difVal * 5)
-                configs.simulation_contest -= difVal * 5;
-            else configs.simulation_contest = 0;
-
+            for (var i in configs)
+            {
+                if (i == "date") continue;
+                if (configs[i] >= difVal * 5)
+                    configs[i] -= difVal * 5;
+                else configs[i] = 0;
+            }
             configs.date = dateEnd.getFullYear() + "-" + (dateEnd.getMonth() + 1) + "-" + dateEnd.getDate();
-            new Promise((r) => {
-                $.ajax({
-                    type: "POST",
-                    url: `https://www.luogu.com.cn/paste/edit/${pageid}`,
-                    beforeSend: function (request) {
-                        request.setRequestHeader(
-                            "x-csrf-token",
-                            $("meta[name='csrf-token']")[0].content
-                        );
-                    },
-                    contentType: "application/json;charset=UTF-8",
-                    data: JSON.stringify({
-                        public: false,
-                        data: "#ExChartData" + JSON.stringify(configs),
-                    }),
-                    success: () => r(),
-                });
-            });
+            EditConfig("#ExChartData", configs, pageid);
         }
         else{
-            let date = new Date;
-            date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
-            configs = {"constructive_problem": 1200, "dynamic_problem": 1200, "single_problem": 1200, "practice_contest": 1200, "cf_multiple_contest": 1200, "simulation_contest": 0, "date": date};
-            new Promise((r) => {
-                $.ajax({
-                    type: "POST",
-                    url: `https://www.luogu.com.cn/paste/new`,
-                    beforeSend: function (request) {
-                        request.setRequestHeader(
-                            "x-csrf-token",
-                            $("meta[name='csrf-token']")[0].content
-                        );
-                    },
-                    contentType: "application/json;charset=UTF-8",
-                    data: JSON.stringify({
-                        public: false,
-                        data: "#ExChartData" + JSON.stringify(configs),
-                    }),
-                    success: () => r(),
-                });
-            });
+            NewConfig("#ExChartData", configs);
         }
-        $("#container3").highcharts({"title":{"text":"","floating":true},"chart":{"backgroundColor":"rgba(0,0,0,0)","type":"area","polar":true},"legend":{"enabled":false},"tooltip":{"shared":true},"xAxis": {"categories": ["构造题", "DP 题", "练习题", "练习赛", "CF 制","模拟赛"],"tickmarkPlacement": "on","lineWidth": 0},"yAxis": {"gridLineInterpolation": "polygon","lineWidth": 0,"min": 0},"series": [{"name": "你的积分","data": [configs.constructive_problem, configs.dynamic_problem, configs.single_problem, configs.practice_contest, configs.cf_multiple_contest, configs.simulation_contest],"pointPlacement": "on"}],"exporting":{"enabled":false},"credits":{"enabled":false}});
+        $("#container3").highcharts({"title":{"text":"","floating":true},"chart":{"backgroundColor":"rgba(0,0,0,0)","type":"area","polar":true},"legend":{"enabled":false},"tooltip":{"shared":true},"xAxis": {"categories": ["构造题", "DP 题", "练习题", "练习赛", "CF 题","模拟赛"],"tickmarkPlacement": "on","lineWidth": 0},"yAxis": {"gridLineInterpolation": "polygon","lineWidth": 0,"min": 0},"series": [{"name": "你的积分","data": [configs.constructive_problem, configs.dynamic_problem, configs.single_problem, configs.practice_contest, configs.cf_multiple_contest, configs.simulation_contest],"pointPlacement": "on"}],"exporting":{"enabled":false},"credits":{"enabled":false}});
     };
     Config();
 }, `
@@ -2352,4 +2523,3 @@ $(() => {
     log("Launching")
     mod.execute()
 })
-
