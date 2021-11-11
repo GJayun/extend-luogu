@@ -15,6 +15,7 @@
 // @connect        tencentcs.com
 // @connect        luogulo.gq
 // @connect        bens.rotriw.com
+// @connect        fanyi.youdao.com
 //
 // @require        https://cdn.luogu.com.cn/js/jquery-2.1.1.min.js
 // @require        https://cdn.bootcdn.net/ajax/libs/js-xss/0.3.3/xss.min.js
@@ -1095,7 +1096,6 @@ mod.reg("rand-footprint", "随机足迹", "@/", {
     })
     $("#check-ac").on("click", () => {
         msto.checked = $("#check-ac").get(0).checked;
-        console.log(msto.checked);
     })
     const $randjump = $("#goto-users-passed").on("click", rand_jump);
     $("#search-user-passed").keydown(e => { e.key === "Enter" && add() })
@@ -1111,29 +1111,7 @@ mod.reg("rand-footprint", "随机足迹", "@/", {
 }
 `)
 
-mod.reg("develop-training", "训练强化", "@/", null, () => {
-    let $board = $("<div class='am-u-md-4' name='exlg-train-board'></div>");
-    $board.html(`
-        <div class='lg-article exlg-index-stat'>
-            <h2>强化训练</h2>
-            <p>
-                单题：
-                <button class="am-btn am-btn-danger am-btn-sm" id="constructive-problem">构造题</button>
-                <button class="am-btn am-btn-primary am-btn-sm" id="dynamic-problem">DP 题</button>
-                <button class="am-btn am-btn-success am-btn-sm" id="single-problem">练习题</button>
-            </p>
-            <p>
-                比赛：
-                <button class="am-btn am-btn-warning am-btn-sm" id="practice-contest">练习赛</button>
-                <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest">CF 题</button>
-                <button class="am-btn am-btn-danger am-btn-sm" id="simulation-contest">模拟赛</button>
-            </p>
-        </div>
-    `);
-
-    $("#exlg-rand-nameboard").after($board);
-}, ``)
-
+const grade = [2147483647, 1199, 1199, 1399, 1599, 2099, 2599, 2147483647];
 let NewConfig = (a, configs) => {
     new Promise((r) => {
         $.ajax({
@@ -1181,11 +1159,47 @@ let viewset, configs;
 let date = new Date;
 date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
 configs = {"constructive_problem": 1200, "dynamic_problem": 1200, "single_problem": 1200, "practice_contest": 1200, "cf_multiple_contest": 1200, "simulation_contest": 0, "date": date};
-
 viewset = {"constructive_problem":null,"dynamic_problem":null,"single_problem":null,"practice_contest":null,"cf_multiple_contest":null,"simulation_contest":null};
-const grade = [2147483647, 1199, 1399, 1599, 2099, 2599, 2147483647];
 const TimeLong = 1000 * 60 * 60 + 1000;
 mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
+    let Translate = async() => {
+        $("mi").remove();
+        $("annotation").remove();
+        $transborad = $(`<div data-v-796309f8="" class="card padding-default" id="translate" data-v-6febb0e8="">
+            <h3 data-v-2017244a="" data-v-796309f8="" class="lfe-h3">翻译</h3>
+            <p>框选内容，点击按钮即可翻译！</p>
+            <button data-v-370e72e2="" data-v-43063e73="" type="button" id="translate-button" class="lfe-form-sz-middle" data-v-52820d90="" style="border-color: rgb(52, 152, 219); background-color: rgb(52, 152, 219);">翻译</button>
+        </div>`);
+        $transborad.prependTo($("section.side"))
+        $transbutton = $("button#translate-button");
+        $transbutton.hover(
+            function(){ $transbutton.css("background-color", "rgb(52, 152, 219, 0.9)");},
+            function(){ $transbutton.css("background-color", "rgb(52, 152, 219)");});
+        $transbutton.click(function(){
+            let text = uindow.getSelection().toString().trim();
+            text = text.replace(new RegExp(" ", "gm"), "+");
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: `http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&doctype=json&i=${text}`,
+                headers: {
+                    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36 Edg/95.0.1020.44",
+                },
+                onload: function (res) {
+                    let ans = res.responseText;
+                    ans = JSON.parse(ans);
+                    $("p#trans").remove();
+                    let anstxt = "";
+                    for (let i in ans.translateResult[0]) {
+                        anstxt += ans.translateResult[0][i].tgt;
+                    }
+                    $transbutton.after($(`<p id="trans">${anstxt}</p>`));
+                },
+                onerror: function (res) {
+                    $("p#trans").remove();
+                }
+            });
+        })
+    }
     let View = async() => {
         let u = await lg_content("https://www.luogu.com.cn/paste?_contentOnly");
         let flag = 0, pageid1;
@@ -1237,69 +1251,73 @@ mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
             flag = 1;
             Doing = i;
         }
-
         const beDoing = (viewset, Doing, pageid) => {
             $cp = $(`<button data-v-370e72e2="" data-v-43063e73="" type="button" class="lfe-form-sz-middle" data-v-52820d90="" style="border-color: rgb(221, 81, 76); background-color: rgb(221, 81, 76);">取消做题</button>`);
             $cp.hover(
                 function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
                 function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
-            $cp.prependTo(".operation");
+            if (Doing === "single_problem" || Doing === "dynamic-problem" || Doing === "constructive-problem")
+                    $cp.prependTo(".operation");
             $("div.card.padding-default").css("display", "none");
             $("div.problem-card").css("display", "block");
+            $("#translate").css("display", "block");
 
             const cancelDoing = () => {
                 clearInterval(Timer_board);
                 $cp.remove();
-                $("#timer-board").remove();
                 $("div.card.padding-default").css("display", "block");
                 viewset[Doing] = null;
-                EditConfig("#ExViewData", viewset, pageid);
+                $("#timer-board").remove();
+                EditConfig("#ExViewData", viewset, pageid1);
             }
-            let nowtime = new Date();
-            let endtime = new Date(viewset[Doing].date);
-            nowtime = endtime.getTime() - nowtime.getTime();
-            let hour = Math.floor(nowtime / (1000*60*60) % 24),
-                minute = Math.floor(nowtime / (1000*60) % 60),
-                sec = Math.floor(nowtime / 1000 % 60);
-            $(`<div data-v-796309f8="" class="card padding-default" id="timer-board" data-v-6febb0e8=""><h2 data-v-796309f8="" class="lfe-h2" >本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}</h2></div>`).prependTo($("section.side"));
-            var Timer_board = setInterval (function () {
+            if (Doing === "single_problem" || Doing === "dynamic-problem" || Doing === "constructive-problem") {
                 let nowtime = new Date();
                 let endtime = new Date(viewset[Doing].date);
                 nowtime = endtime.getTime() - nowtime.getTime();
-                if (nowtime <= 0)
-                {
-                    clearInterval(Timer_board);
-                    uindow._feInstance.$swal({
-                        title: "时间结束  您要重写本题吗",
-                        text: "如果不，您将会扣分",
-                        type: "question",
-                        showCancelButton: true,
-                        confirmButtonText: "确定",
-                        cancelButtonText: "取消"
-                    }).then((result) => {
-                        if (result.value) {
-                            var date = new Date();
-                            date = date.getTime() + TimeLong;
-                            $cp.remove();
-                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [uindow._feInjection.currentData.problem.pid]};
-                            EditConfig("#ExViewData", viewset, pageid);
-                            beDoing(viewset, Doing);
-                        } else {
-                            cancelDoing();
-                        }
-                    })
-                }
                 let hour = Math.floor(nowtime / (1000*60*60) % 24),
                     minute = Math.floor(nowtime / (1000*60) % 60),
                     sec = Math.floor(nowtime / 1000 % 60);
-                $(`#timer-board > h2`).text(`本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
-            }, 1000);
+                $(`<div data-v-796309f8="" class="card padding-default" id="timer-board" data-v-6febb0e8=""><h2 data-v-796309f8="" class="lfe-h2" >本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}</h2></div>`).prependTo($("section.side"));
+                var Timer_board = setInterval (function () {
+                    let nowtime = new Date();
+                    let endtime = new Date(viewset[Doing].date);
+                    nowtime = endtime.getTime() - nowtime.getTime();
+                    if (nowtime < 1000)
+                    {
+                        clearInterval(Timer_board);
+                        $("#timer-board").remove();
+                        uindow._feInstance.$swal({
+                            title: "时间结束  您要重写本题吗",
+                            text: "如果不，您将会扣分",
+                            type: "question",
+                            showCancelButton: true,
+                            confirmButtonText: "确定",
+                            cancelButtonText: "取消"
+                        }).then((result) => {
+                            if (result.value) {
+                                var date = new Date();
+                                date = date.getTime() + TimeLong;
+                                $cp.remove();
+                                viewset.single_problem = {"date": new Date(date).getTime(), "problem": [uindow._feInjection.currentData.problem.pid]};
+                                EditConfig("#ExViewData", viewset, pageid);
+                                beDoing(viewset, Doing);
+                            } else {
+                                cancelDoing();
+                            }
+                        })
+                    }
+                    let hour = Math.floor(nowtime / (1000*60*60) % 24),
+                        minute = Math.floor(nowtime / (1000*60) % 60),
+                        sec = Math.floor(nowtime / 1000 % 60);
+                    $(`#timer-board > h2`).text(`本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
+                }, 1000);
+            }
             $cp.click(cancelDoing);
         }
 
         if (!flag)
         {
-            if (uindow._feInjection.currentData.problem.score !== uindow._feInjection.currentData.problem.fullScore)
+            if (uindow._feInjection.currentData.problem.accepted !== true)
             {
                 let dif = uindow._feInjection.currentData.problem.difficulty;
                 if (grade[dif] < configs.single_problem) {
@@ -1351,16 +1369,34 @@ mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
                 })
             }
             else {
-                if (Doing === "single_problem" || Doing === "dynamic-problem" || Doing === "constructive-problem"){
-                    beDoing(viewset, Doing, pageid1);
-                }
+                beDoing(viewset, Doing, pageid1);
             }
         }
     };
+    Translate();
     View();
 }, ``)
 
-mod.reg("exchart", "ex图表", "@/", null, () => {
+mod.reg("develop-training", "训练强化", "@/", null, () => {
+    let $trboard = $("<div class='am-u-md-4' name='exlg-train-board'></div>");
+    $trboard.html(`
+        <div class='lg-article exlg-index-stat'>
+            <h2>强化训练</h2>
+            <p>
+                单题：
+                <button class="am-btn am-btn-danger am-btn-sm" id="constructive-problem">构造题</button>
+                <button class="am-btn am-btn-primary am-btn-sm" id="dynamic-problem">DP 题</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="single-problem">练习题</button>
+            </p>
+            <p>
+                比赛：
+                <button class="am-btn am-btn-warning am-btn-sm" id="practice-contest">练习赛</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest">CF 题</button>
+                <button class="am-btn am-btn-danger am-btn-sm" id="simulation-contest">模拟赛</button>
+            </p>
+        </div>
+    `);
+    $("#exlg-rand-nameboard").after($trboard);
     let $board = $(`<div class="am-g" id="ex-chart"></div>`);
     $board.appendTo($(".lg-index-content.am-center"));
     $board.prev().insertAfter($board);
@@ -1387,7 +1423,7 @@ mod.reg("exchart", "ex图表", "@/", null, () => {
             return;
         });
         if (flag) {
-            var dateStart = new Date(configs.date);
+            var dateStart = new Date(configs.date + " 0:00:00");
             var dateEnd = new Date();
             var difVal = Math.floor(Math.abs(dateEnd - dateStart) / (1000 * 60 * 60 * 24));
             for (var i in configs)
@@ -1404,6 +1440,64 @@ mod.reg("exchart", "ex图表", "@/", null, () => {
             NewConfig("#ExChartData", configs);
         }
         $("#container3").highcharts({"title":{"text":"","floating":true},"chart":{"backgroundColor":"rgba(0,0,0,0)","type":"area","polar":true},"legend":{"enabled":false},"tooltip":{"shared":true},"xAxis": {"categories": ["构造题", "DP 题", "练习题", "练习赛", "CF 题","模拟赛"],"tickmarkPlacement": "on","lineWidth": 0},"yAxis": {"gridLineInterpolation": "polygon","lineWidth": 0,"min": 0},"series": [{"name": "你的积分","data": [configs.constructive_problem, configs.dynamic_problem, configs.single_problem, configs.practice_contest, configs.cf_multiple_contest, configs.simulation_contest],"pointPlacement": "on"}],"exporting":{"enabled":false},"credits":{"enabled":false}});
+        flag = 0;
+        let pageid2;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 11) !== "#ExViewData") return;
+            let k = u.data;
+            pageid2 = u.id;
+            viewset = JSON.parse(k.substr(11, k.lentgh));
+            flag = 1;
+            return;
+        });
+        if (!flag) NewConfig("#ExViewData", viewset);
+        $("#single-problem").click(async() => {
+            $("#single-problem").prop("disabled", true);
+
+            let flag = 0;
+            for (var i in viewset)
+            {
+                if (viewset[i] == null) continue;
+                let nowDate = new Date(), endDate = new Date(viewset[i].date);
+                if (endDate < nowDate)
+                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid1); break; }
+                flag = 1;
+            }
+            if (!!flag) {
+                lg_alert("您已经在写其它题了");
+                $("#single-problem").prop("disabled", false);
+                return;
+            }
+
+            let nowdif = 0;
+            for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
+            let pType = ["P", "CF", "SP", "AT", "UVA"], pT_idx = Math.floor(Math.random() * 5);
+            let res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=1`);
+            const
+                problem_count = res.currentData.problems.count,
+                page_count = Math.ceil(problem_count / 50),
+                rand_page = Math.floor(Math.random() * page_count) + 1;
+            res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=${rand_page}`);
+            
+            const
+                list = res.currentData.problems.result,
+                rand_idx = Math.floor(Math.random() * list.length);
+            while (list[rand_idx].accepted == true && list.length > 0) 
+                list.splice(rand_idx, 1),
+                Math.floor(Math.random() * list.length);
+            if (list.length <= 0) {
+                $("#single-problem").prop("disabled", false);
+                lg_alert("出错了，重来一次吧！");
+                return;
+            }
+            $("#single-problem").prop("disabled", false);
+            var date = new Date();
+            date = date.getTime() + TimeLong;
+            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [list[rand_idx].pid]};
+            EditConfig("#ExViewData", viewset, pageid2);
+            location.href = `/problem/${list[rand_idx].pid}`;
+        })
     };
     Config();
 }, `
@@ -2522,4 +2616,694 @@ $(() => {
 
     log("Launching")
     mod.execute()
+}) break; }
+                DoingPid = viewset[Doing].problem[i];
+            }
+            if (!flag) {
+                uindow._feInstance.$swal({
+                    title: "您已经在写其它题了",
+                    text: "2 秒后跳转到您正在写的题目",
+                    type: "warning",
+                    timer: 2000,
+                    showConfirmButton: false,
+                }).then(() =>{
+                    uindow.location = `/problem/${DoingPid}`;
+                })
+            }
+            else {
+                if (Doing === "single_problem" || Doing === "dynamic-problem" || Doing === "constructive-problem"){
+                    beDoing(viewset, Doing, pageid1);
+                }
+            }
+        }
+    };
+    View();
+}, ``)
+
+mod.reg("exchart", "ex图表", "@/", null, () => {
+    let $board = $(`<div class="am-g" id="ex-chart"></div>`);
+    $board.appendTo($(".lg-index-content.am-center"));
+    $board.prev().insertAfter($board);
+    let $chart = $("div.am-u-md-9");
+    let $hc = $(`<div id="container3" class="am-u-md-3-5 am-text-center" style=" height:180px; margin-right: 20px"></div>`);
+    $chart.appendTo($board);
+    $chart.removeClass();
+    $chart.addClass("am-u-md-12");
+    $("#container").removeClass("am-u-md-6");
+    $("#container").addClass("am-u-md-4-5");
+    $("#container2").removeClass("am-u-md-6");
+    $("#container2").addClass("am-u-md-4-5");
+    $("#container2").after($hc);
+    let Config = async() => {
+        let u = await lg_content("https://www.luogu.com.cn/paste?_contentOnly");
+        let flag = 0, pageid;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 12) !== "#ExChartData") return;
+            let k = u.data;
+            pageid = u.id;
+            configs = JSON.parse(k.substr(12, k.lentgh));
+            flag = 1;
+            return;
+        });
+        if (flag) {
+            var dateStart = new Date(configs.date);
+            var dateEnd = new Date();
+            var difVal = Math.floor(Math.abs(dateEnd - dateStart) / (1000 * 60 * 60 * 24));
+            for (var i in configs)
+            {
+                if (i == "date") continue;
+                if (configs[i] >= difVal * 5)
+                    configs[i] -= difVal * 5;
+                else configs[i] = 0;
+            }
+            configs.date = dateEnd.getFullYear() + "-" + (dateEnd.getMonth() + 1) + "-" + dateEnd.getDate();
+            EditConfig("#ExChartData", configs, pageid);
+        }
+        else{
+            NewConfig("#ExChartData", configs);
+        }
+        $("#container3").highcharts({"title":{"text":"","floating":true},"chart":{"backgroundColor":"rgba(0,0,0,0)","type":"area","polar":true},"legend":{"enabled":false},"tooltip":{"shared":true},"xAxis": {"categories": ["构造题", "DP 题", "练习题", "练习赛", "CF 题","模拟赛"],"tickmarkPlacement": "on","lineWidth": 0},"yAxis": {"gridLineInterpolation": "polygon","lineWidth": 0,"min": 0},"series": [{"name": "你的积分","data": [configs.constructive_problem, configs.dynamic_problem, configs.single_problem, configs.practice_contest, configs.cf_multiple_contest, configs.simulation_contest],"pointPlacement": "on"}],"exporting":{"enabled":false},"credits":{"enabled":false}});
+    };
+    Config();
+}, `
+.am-u-md-4-5 {
+    width: 37.5%
+}
+.am-u-md-3-5 {
+    width: 25%
+}
+`)
+
+
+mod.reg("rand-problem-ex", "随机跳题ex", "@/", {
+    exrand_difficulty: {
+        ty: "tuple",
+        lvs: [
+            { ty: "boolean", dft: false, strict: true, repeat: 8 }
+        ],
+        priv: true
+    },
+    exrand_source: {
+        ty: "tuple",
+        lvs: [
+            { ty: "boolean", dft: false, strict: true, repeat: 5 }
+        ],
+        priv: true
+    }
+}, ({msto}) => {
+    const dif_list = [
+        {
+            text: "入门",
+            color: "red",
+            id: 1
+        },
+        {
+            text: "普及-",
+            color: "orange",
+            id: 2
+        },
+        {
+            text: "普及/提高-",
+            color: "yellow",
+            id: 3
+        },
+        {
+            text: "普及+/提高",
+            color: "green",
+            id: 4
+        },
+        {
+            text: "提高+/省选-",
+            color: "blue",
+            id: 5
+        },
+        {
+            text: "省选/NOI-",
+            color: "purple",
+            id: 6
+        },
+        {
+            text: "NOI/NOI+/CTSC",
+            color: "black",
+            id: 7
+        },
+        {
+            text: "暂无评定",
+            color: "gray",
+            id: 0
+        }
+    ]
+    const src_list = [
+        {
+            text: "洛谷题库",
+            color: "red",
+            id: "P"
+        },
+        {
+            text: "Codeforces",
+            color: "orange",
+            id: "CF"
+        },
+        {
+            text: "SPOJ",
+            color: "yellow",
+            id: "SP"
+        },
+        {
+            text: "ATcoder",
+            color: "green",
+            id: "AT"
+        },
+        {
+            text: "UVA",
+            color: "blue",
+            id: "UVA"
+        }
+    ]
+
+    const func_jump_problem = (str) => { // Note: 跳转题目
+        if (judge_problem(str)) str = str.toUpperCase()
+        if (str === "" || typeof (str) === "undefined") uindow.show_alert("提示", "请输入题号")
+        else location.href = "https://www.luogu.com.cn/problemnew/show/" + str
+    }
+
+    let mouse_on_board = false, mouse_on_dash = false
+
+    // Note: 重新构建界面
+    let $input = $("input[name='toproblem']")
+    $input.after($input.clone()).remove()
+    $input = $("input[name='toproblem']")
+
+    let $jump = $(".am-btn[name='goto']")
+    $jump.after($jump.clone()).remove()
+    $jump = $(".am-btn[name='goto']")
+
+    const $btn_list = $jump.parent()
+
+    $(".am-btn[name='gotorandom']").text("随机")
+    const $jump_exrand = $(`<button class="am-btn am-btn-success am-btn-sm" name="gotorandomex">随机ex</button>`).appendTo($btn_list)
+
+    $jump.on("click", () => {
+        if (/^[0-9]+.?[0-9]*$/.test($input.val())) $input.val("P" + $input.val())
+        func_jump_problem($input.val())
+    })
+    $input.on("keydown", e => {
+        if (e.keyCode === 13) $jump.click()
+    })
+    // Note: board
+    const $board = $(`<span id="exlg-exrand-window" class="exlg-window" style="display: block;">
+    <br>
+    <ul></ul>
+    </span>`).appendTo($btn_list).hide()
+        .mouseenter(() => {mouse_on_board = true})
+        .mouseleave(() => {
+            mouse_on_board = false
+            if (!mouse_on_dash) {
+                $board.hide()
+            } // Hack: 维护onboard
+        })
+    $(".lg-index-stat>h2").text("问题跳转 ").append($(`<div id="exlg-dash-0" class="exlg-rand-settings">ex设置</div>`))
+    const $ul = $board.children("ul").css("list-style-type", "none")
+
+    const $exrand_menu = $(`<div id="exlg-exrand-menu"></div>`).appendTo($ul)
+    $("<br>").appendTo($ul)
+    const $exrand_diff = $(`<div id="exlg-exrand-diff" class="smallbtn-list"></div>`).appendTo($ul)
+    const $exrand_srce = $(`<div id="exlg-exrand-srce" class="smallbtn-list"></div>`).appendTo($ul).hide()
+
+    const $entries = $.double((text) => $(`<div class="exlg-rand-settings exlg-unselectable exrand-entry">${text}</div>`).appendTo($exrand_menu), "题目难度", "题目来源")
+    $entries[0].after($(`<span class="exlg-unselectable">&nbsp;&nbsp;</span>`))
+    $entries[0].addClass("selected").css("margin-right", "38px")
+
+    $.double(([$entry, $div]) => {
+        $entry.on("click", () => {
+            $(".exrand-entry").removeClass("selected")
+            $entry.addClass("selected")
+            $(".smallbtn-list").hide()
+            $div.show()
+        })
+    }, [$entries[0], $exrand_diff], [$entries[1], $exrand_srce])
+
+    $.double(([$parent, obj_list, msto_proxy]) => {
+        const $lists = $.double(([classname, desctext]) => $(`<span class="${classname}">
+        <span class="lg-small lg-inline-up exlg-unselectable">${desctext}</span>
+        <br>
+        </span>`).appendTo($parent), ["exrand-enabled", "已选择"], ["exrand-disabled", "未选择"])
+        obj_list.forEach((obj, index) => {
+            const $btn = $.double(($p) => $(`<div class="exlg-smallbtn exlg-unselectable">${obj.text}</div>`).css("background-color", `var(--lg-${obj.color}-problem)`).appendTo($p), $lists[0], $lists[1])
+            $.double((b) => {
+                $btn[b].on("click", () => {
+                    $btn[b].hide()
+                    $btn[1 - b].show()
+                    msto_proxy[index] = !! b
+                })
+                if (msto_proxy[index] === (!! b)) $btn[b].hide()
+            }, 0, 1)
+        })
+    }, [$exrand_diff, dif_list, msto.exrand_difficulty], [$exrand_srce, src_list, msto.exrand_source])
+
+    $("#exlg-dash-0").mouseenter(() => {
+        mouse_on_dash = true
+
+        $.double(([$p, mproxy]) => {
+            const _$smalldash = [$p.children(".exrand-enabled").children(".exlg-smallbtn"), $p.children(".exrand-disabled").children(".exlg-smallbtn")]
+
+            $.double(([jqstr, bln]) => {
+                $p.children(jqstr).children(".exlg-smallbtn").each((i, e, $e = $(e)) => (mproxy[i] === bln) ? ($e.show()) : ($e.hide()))
+            }, [".exrand-enabled", true], [".exrand-disabled", false])
+        }, [$exrand_diff, msto.exrand_difficulty], [$exrand_srce, msto.exrand_source]) // Hack: 防止开两个页面瞎玩的情况
+        $board.show() // Hack: 鼠标放在dash上开window
+    })
+        .mouseleave(() => {
+            mouse_on_dash = false // Hack: 离开dash和board超过200ms直接关掉
+            if (!mouse_on_board) {
+                setTimeout(() => {
+                    if (!mouse_on_board) $board.hide()
+                }, 200)
+            }
+        })
+
+    const exrand_poi = async () => { // Note: 异步写法（用到了lg_content）
+        const result = $.double(([l, msto_proxy, _empty]) => {
+            let g = []
+            l.forEach((e, i) => {
+                if (msto_proxy[i]) g.push(e.id)
+            })
+            if (!g.length) g = _empty
+            return g[Math.floor(Math.random() * g.length)]
+        }, [dif_list, msto.exrand_difficulty, [0, 1, 2, 3, 4, 5, 6, 7]], [src_list, msto.exrand_source, ["P"]])
+        let res = await lg_content(`/problem/list?difficulty=${result[0]}&type=${result[1]}&page=1`)
+
+        const
+            problem_count = res.currentData.problems.count,
+            page_count = Math.ceil(problem_count / 50),
+            rand_page = Math.floor(Math.random() * page_count) + 1
+
+        res = await lg_content(`/problem/list?difficulty=${result[0]}&type=${result[1]}&page=${rand_page}`)
+        const
+            list = res.currentData.problems.result,
+            rand_idx = Math.floor(Math.random() * list.length),
+            pid = list[rand_idx].pid
+        location.href = `/problem/${pid}`
+    }
+
+    $jump_exrand.on("click", exrand_poi)
+},`
+
+.exlg-rand-settings {
+    position: relative;
+    display: inline-block;
+    padding: 1px 5px 1px 5px;
+    background-color: white;
+    border: 1px solid #6495ED;
+    color: cornflowerblue;
+    border-radius: 6px;
+    font-size: 12px;
+    position: relative;
+    top: -2px;
+}
+.exlg-rand-settings.selected {
+    background-color: cornflowerblue;
+    border: 1px solid #6495ED;
+    color: white;
+}
+.exlg-rand-settings:hover {
+    box-shadow: 0 0 7px dodgerblue;
+}
+.exlg-smallbtn {
+    position: relative;
+    display: inline-block;
+    padding: 1px 5px 1px;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-left: 1px;
+    margin-right: 1px;
+}
+.exlg-window {
+    position: absolute;
+    top: 35px;
+    left: 0px;
+    z-index: 65536;
+    display: none;
+    width: 250px;
+    height: 300px;
+    padding: 5px;
+    background: white;
+    color: black;
+    border-radius: 7px;
+    box-shadow: rgb(187 227 255) 0px 0px 7px;
+}
+.exrand-enabled{
+    width: 49%;
+    float: left;
+}
+.exrand-disabled{
+    width: 49%;
+    float: right;
+}
+`)
+
+mod.reg_hook_new("code-block-ex", "代码块优化", "@/.*", {
+    show_code_lang : { ty: "boolean", dft: true, strict: true, info: [ "Show Language Before Codeblocks", "显示代码块语言" ] },
+    copy_code_position : { ty: "enum", vals: [ "left", "right" ], dft: "left", info: [ "Copy Button Position", "复制按钮对齐方式" ] },
+    code_block_title : { ty: "string", dft: "源代码 - ${lang}", info: [ "Custom Code Title", "自定义代码块标题" ] },
+    copy_code_font : { ty: "string", dft: "'Fira Code', Consolas, monospace", info: [ "Code Block Font", "代码块字体" ], strict: true },
+    max_show_lines : { ty: "number", dft: -1, min: -1, max: 100, info: [ "Max Lines On Show", "代码块最大显示行数" ], strict: true }
+},  ({ msto, args }) => {
+
+    const isRecord = /\/record\/.*/.test(location.href)
+
+    const langs = {
+        c: "C", cpp: "C++", pascal: "Pascal", python: "Python", java: "Java", javascript: "JavaScript", php: "PHP", latex: "LaTeX"
+    }
+
+    const get_lang = $code => {
+        let lang = "undefined"
+        if (isRecord) return $($(".value.lfe-caption")[0]).text()
+        if ($code.attr("data-rendered-lang")) lang = $code.attr("data-rendered-lang")
+        else if ($code.attr("class")) $code.attr("class").split(" ").forEach(cls => {
+            if (cls.startsWith("language-")) lang = cls.slice(9)
+        })
+        return langs[lang]
+    }
+
+    args.attr("exlg-copy-code-block", "")
+
+    args.each((_, e, $pre = $(e)) => {
+        if (e.parentNode.className === "mp-preview-content" || e.parentNode.parentNode.className === "mp-preview-area") return
+        const $btn = isRecord
+            ? ($pre.children(".copy-btn"))
+            : $(`<div class="exlg-copy">复制</div>`)
+                .on("click", () => {
+                    if ($btn.text() !== "复制") return // Note: Debounce
+                    $btn.text("复制成功").toggleClass("exlg-copied")
+                    setTimeout(() => $btn.text("复制").toggleClass("exlg-copied"), 800)
+                    GM_setClipboard($pre.text(), { type: "text", mimetype: "text/plain" })
+                })
+
+        const $code = $pre.children("code")
+        $code.css("font-family", msto.copy_code_font || undefined)
+        if (! $code.hasClass("hljs")) $code.addClass("hljs").css("background", "white")
+        $btn.addClass(`exlg-copy-${msto.copy_code_position}`)
+
+        const lang = get_lang($code)
+        const title_text = ((msto.show_code_lang && lang) ? ( msto.code_block_title.replace("${lang}", lang)) : ("源代码"))
+        const $title = isRecord ? $(".lfe-h3").text(title_text) : $(`<h3 class="exlg-code-title" style="width: 100%;">${title_text}</h3>`)
+
+        if (! isRecord) $pre.before($title.append($btn))
+    })
+}, (e) => {
+    const $tar = $(e.target).find("pre:has(> code:not(.cm-s-default)):not([exlg-copy-code-block])")
+    return {
+        result: $tar.length,
+        args: $tar
+    }
+}, () => $("pre:has(> code:not(.cm-s-default)):not([exlg-copy-code-block])"), `
+.exlg-copy {
+    position: relative;
+    display: inline-block;
+    border: 1px solid #3498db;
+    border-radius: 3px;
+    background-color: rgba(52, 152, 219, 0);
+    color: #3498db;
+    font-family: -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue", "Noto Sans", "Noto Sans CJK SC", "Noto Sans CJK", "Source Han Sans", "PingFang SC", "Segoe UI", "Microsoft YaHei", sans-serif;
+    flex: none;
+    outline: 0;
+    cursor: pointer;
+    font-weight: normal;
+    line-height: 1.5;
+    text-align: center;
+    vertical-align: middle;
+    background: 0 0;
+    font-size: 12px;
+    padding: 0 5px;
+    margin-left: 1px;
+}
+.exlg-copy.exlg-copy-right {
+    float: right;
+}
+.exlg-copy:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+div.exlg-copied {
+    background-color: rgba(52, 152, 219, 0.9)!important;
+    color: white!important;
+}
+.copy-btn {
+    font-size: .8em;
+    padding: 0 5px;
+}
+.lfe-form-sz-middle {
+    font-size: 0.875em;
+    padding: 0.313em 1em;
+}
+.exlg-code-title {
+    margin: 0;
+    font-family: inherit;
+    font-size: 1.125em;
+    color: inherit;
+}
+`)
+
+mod.reg_hook_new("rand-training-problem", "题单内随机跳题", "@/training/[0-9]+(#.*)?", {
+    mode: { ty: "enum", vals: ["unac only", "unac and new", "new only"], dft : "unac and new", info: [
+        "Preferences about problem choosing", "随机跳题的题目种类"
+    ] }
+}, ({ msto, args }) => {
+    let ptypes = msto.mode.startsWith("unac") + msto.mode.endsWith("only") * (-1) + 2
+    if (! args.length) return // Hack: 这一步明明 result 已经是 0 的情况下还把参数传进去了导致RE，鬼知道什么 bug
+    $(args[0].firstChild).clone(true)
+        .appendTo(args)
+        .text("随机跳题")
+        .addClass("exlg-rand-training-problem-btn")
+        .on("click", () => {
+            const tInfo = uindow._feInjection.currentData.training
+            let candProbList = []
+
+            tInfo.problems.some(pb => {
+                if (tInfo.userScore.score[pb.problem.pid] === null) {
+                    if (ptypes & 1)
+                        candProbList.push(pb.problem.pid)
+                }
+                else if (tInfo.userScore.score[pb.problem.pid] < pb.problem.fullScore && (ptypes & 2))
+                    candProbList.push(pb.problem.pid)
+            })
+
+            if (!tInfo.problemCount)
+                return lg_alert("题单不能为空")
+            else if (!candProbList.length) {
+                if (ptypes === 1)
+                    return lg_alert("您已经做完所有新题啦！")
+                else if (ptypes === 2)
+                    return lg_alert("您已经订完所有错题啦！")
+                else
+                    return lg_alert("您已经切完所有题啦！")
+            }
+
+            const pid = ~~ (Math.random() * 1.e6) % candProbList.length
+            location.href = "https://www.luogu.com.cn/problem/" + candProbList[pid]
+        })
+}, (e) => {
+    const $tmp = $(e.target).find("div.operation")
+    return { result: $tmp.length > 0, args: $tmp }
+}, () => $("div.operation"), `
+.exlg-rand-training-problem-btn {
+    border-color: rgb(52, 52, 52);
+    background-color: rgb(52, 52, 52);
+}
+`)
+
+mod.reg("tasklist-ex", "任务计划ex", "@/", {
+    auto_clear: { ty: "boolean", dft: true, info: ["Hide accepted problems", "隐藏已经 AC 的题目"] },
+    rand_problem_in_tasklist: { ty: "boolean", dft: true, info: ["Random problem in tasklist", "任务计划随机跳题"]}
+}, ({ msto }) => {
+    /* const _$board = $("button[name=task-edit]").parent().parent() // Note: 如果直接$div:has(.tasklist-item) 那么当任务计划为空.. */
+    let actTList = []
+    $.each($("div.tasklist-item"), (_, prob, $e = $(prob)) => {
+        const pid = $e.attr("data-pid")
+
+        if (prob.innerHTML.search(/check/g) === -1) {
+            if (msto.rand_problem_in_tasklist)
+                actTList.push(pid)
+        }
+        if ($e.find("i").hasClass("am-icon-check")) $e.addClass("tasklist-ac-problem")
+    })
+
+    const $toggle_AC = $(`<div>[<a id="toggle-button">隐藏已AC</a>]</div>`)
+    $("button[name=task-edit]").parent().after($toggle_AC)
+
+    const $ac_problem = $(".tasklist-ac-problem")
+    const $toggle = $("#toggle-button").on("click", () => {
+        $ac_problem.toggle()
+        $toggle.text([ "隐藏", "显示" ][ + (msto.auto_clear = ! msto.auto_clear) ] + "已 AC")
+    })
+
+    if (msto.auto_clear) $toggle.click()
+
+    if (msto.rand_problem_in_tasklist) {
+        let $btn = $(`<button name="task-rand" class="am-btn am-btn-sm am-btn-success lg-right">随机</button>`)
+        $("button[name='task-edit']").before($btn)
+        $btn.addClass("exlg-rand-tasklist-problem-btn")
+            .click(() => {
+                let tid = ~~ (Math.random() * 1.e6) % actTList.length
+                location.href += `problem/${ actTList[tid] }`
+            })
+    }
+}, `
+.exlg-rand-tasklist-problem-btn {
+    margin-left: 0.5em;
+}
+`)
+
+mod.reg("dbc-jump", "双击题号跳题", "@/.*", null, () => {
+    $(document).on("dblclick", e => {
+        const pid = window.getSelection().toString().trim().toUpperCase()
+        const url = e.ctrlkey
+            ? $(".ops > a[href*=blog]").attr("href") + "solution-"
+            : "https://www.luogu.com.cn/problem/"
+        if (judge_problem(pid)) window.open(url + pid)
+    })
 })
+
+let lst_page = -1
+mod.reg_hook_new("submission-color", "记录难度可视化", "@/record/list.*", null, () => {
+    const func = async() => {
+        if ($(".exlg-difficulty-color").length) return;
+        let u = await lg_content(uindow.location.href)
+        const dif = u.currentData.records.result.map((u) => u.problem.difficulty)
+        $("div.problem > div > a > span.pid").each((i, e, $e = $(e)) => {
+            // console.log(u.currentData.records.result[i].problem.pid, i)
+            $e.removeClass();
+            $e.addClass("pid").addClass("exlg-difficulty-color").addClass(`color-${dif[i]}`)
+        })
+    }
+    func()
+}, (e) => {
+    if(!uindow.location.href.match("www.luogu.com.cn/record/list.*")) return {result: false}
+    let now_page = uindow.location.href.slice(37);
+    if (now_page !== lst_page) {lst_page = now_page; return {result: !$("div.problem > div > a > span.pid").hasClass("exlg-difficulty-color")};}
+
+}, () => [], ``
+)
+
+
+mod.reg("keyboard-and-cli", "键盘操作与命令行", "@/.*", {
+    lang: { ty: "enum", dft: "en", vals: [ "en", "zh" ] }
+}, ({ msto }) => {
+    const $cli = $(`<div id="exlg-cli" exlg="exlg"></div>`).appendTo($("body"))
+    const $cli_input = $(`<input id="exlg-cli-input" />`).appendTo($cli)
+
+    let cli_is_log = false
+    const cli_log = (sp, ...tp) => {
+        cli_is_log = true
+        const m = sp.map((s, i) =>
+            s.split(/\b/).map(w => cli_lang_dict[w]?.[ cli_lang - 1 ] ?? w).join("") +
+            (tp[i] || "")
+        ).join("")
+        return $cli_input.val(m)
+    }
+    const cli_error = (sp, ...tp) =>
+        warn(cli_log(sp, ...tp).addClass("error").val())
+    const cli_clean = () => {
+        cli_is_log = false
+        return $cli_input.val("").removeClass("error")
+    }
+    const cli_history = []
+    let cli_history_index = 0
+    const cli_langs = [ "en", "zh" ], cli_lang_dict = {
+        ".": [ "。" ],
+        ",": [ "，" ],
+        "!": [ "！" ],
+        "?": [ "？" ],
+        "cli":        [ "命令行" ],
+        "current":    [ "当前" ],
+        "language":   [ "语言" ],
+        "available":  [ "可用" ],
+        "command":    [ "命令" ],
+        "commands":   [ "命令" ],
+        "unknown":    [ "未知" ],
+        "forum":      [ "板块" ],
+        "target":     [ "目标" ],
+        "mod":        [ "模块" ],
+        "action":     [ "操作" ],
+        "illegal":    [ "错误" ],
+        "param":      [ "参数" ],
+        "expected":   [ "期望" ],
+        "type":       [ "类型" ],
+        "lost":       [ "缺失" ],
+        "essential":  [ "必要" ],
+        "user":       [ "用户" ]
+    }
+    let cli_lang = cli_langs.indexOf(msto.lang) || 0
+
+    const cmds = {
+        help: (cmd/* string*/) => {
+            /* get the help of <cmd>. or list all cmds. */
+            /* 获取 <cmd> 的帮助。空则列出所有。 */
+            if (! cmd)
+                cli_log`exlg cli. current language: ${cli_lang}, available commands: ${ Object.keys(cmds).join(", ") }`
+            else {
+                const f = cmds[cmd]
+                if (! f) return cli_error`help: unknown command "${cmd}"`
+
+                const arg = f.arg.map(a => {
+                    const i = a.name + ": " + a.type
+                    return a.essential ? `<${i}>` : `[${i}]`
+                }).join(" ")
+                cli_log`${cmd} ${arg} ${ f.help[cli_lang] }`
+            }
+        },
+        cd: (path/* !string*/) => {
+            /* jump to <path>, relative path is OK. */
+            /* 跳转至 <path>，支持相对路径。 */
+            let tar
+            if (path[0] === "/") tar = path
+            else {
+                const pn = location.pathname.replace(/^\/+/, "").split("/")
+                const pr = path.split("/")
+                pr.forEach(d => {
+                    if (d === ".") return
+                    if (d === "..") pn.pop()
+                    else pn.push(d)
+                })
+                tar = pn.join("/")
+            }
+            location.href = location.origin + "/" + tar.replace(/^\/+/, "")
+        },
+        cdd: (forum/* !string*/) => {
+            /* jump to the forum named <forum> of discussion. use all the names you can think of. */
+            /* 跳转至名为 <forum> 的讨论板块，你能想到的名字基本都有用。 */
+            const tar = [
+                [ "relevantaffairs",    "gs", "gsq",    "灌水", "灌水区",               "r", "ra" ],
+                [ "academics",          "xs", "xsb",    "学术", "学术版",               "a", "ac" ],
+                [ "siteaffairs",        "zw", "zwb",    "站务", "站务版",               "s", "sa" ],
+                [ "problem",            "tm", "tmzb",   "题目", "题目总版",             "p"       ],
+                [ "service",            "fk", "fksqgd", "反馈", "反馈、申请、工单专版",      "se" ]
+            ]
+            forum = tar.find(ns => ns.includes(forum))?.[0]
+            if (! tar) return cli_error`cdd: unknown forum "${forum}"`
+            cmds.cd(`/discuss/lists?forumname=${forum}`)
+        },
+        cc: (name/* char*/) => {
+            /* jump to [name], "h|p|c|r|d|i|m|n" stands for home|problem|contest|record|discuss|I myself|message|notification. or jump home. */
+            /* 跳转至 [name]，"h|p|c|r|d|i|m|n" 代表：主页|题目|比赛|评测记录|讨论|个人中心|私信|通知。空则跳转主页。 */
+            name = name || "h"
+            const tar = {
+                h: "/",
+                p: "/problem/list",
+                c: "/contest/list",
+                r: "/record/list",
+                d: "/discuss/lists",
+                i: "/user/" + uindow._feInjection.currentUser.uid,
+                m: "/chat",
+                n: "/user/notification",
+            }[name]
+            if (tar) cmds.cd(tar)
+            else cli_error`cc: unknown target "${name}"`
+        },
+        mod: (action/* !string*/, name/* string*/) => {
+            /* for <action> "enable|disable|toggle", opearte the mod named <name>. */
+            /* 当 <action> 为 "enable|disable|toggle"，对名为 <name> 的模块执行对应操作：启用|禁用|切换。 */
+            const i = mod.find_i(name)
+            
