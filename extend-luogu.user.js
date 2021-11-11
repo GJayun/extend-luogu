@@ -16,6 +16,7 @@
 // @connect        luogulo.gq
 // @connect        bens.rotriw.com
 // @connect        fanyi.youdao.com
+// @connect        codeforces.com
 //
 // @require        https://cdn.luogu.com.cn/js/jquery-2.1.1.min.js
 // @require        https://cdn.bootcdn.net/ajax/libs/js-xss/0.3.3/xss.min.js
@@ -1256,7 +1257,7 @@ mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
             $cp.hover(
                 function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
                 function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
-            if (Doing === "single_problem" || Doing === "dynamic-problem" || Doing === "constructive-problem")
+            if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
                     $cp.prependTo(".operation");
             $("div.card.padding-default").css("display", "none");
             $("div.problem-card").css("display", "block");
@@ -1270,7 +1271,7 @@ mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
                 $("#timer-board").remove();
                 EditConfig("#ExViewData", viewset, pageid1);
             }
-            if (Doing === "single_problem" || Doing === "dynamic-problem" || Doing === "constructive-problem") {
+            if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem") {
                 let nowtime = new Date();
                 let endtime = new Date(viewset[Doing].date);
                 nowtime = endtime.getTime() - nowtime.getTime();
@@ -1312,7 +1313,20 @@ mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
                     $(`#timer-board > h2`).text(`本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
                 }, 1000);
             }
-            $cp.click(cancelDoing);
+            $cp.click(function(){
+                uindow._feInstance.$swal({
+                    title: "您确定要取消做题吗",
+                    text: "如果是，您将会扣分",
+                    type: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "确定",
+                    cancelButtonText: "取消"
+                }).then((result) => {
+                    if (result.value) {
+                        cancelDoing();
+                    }
+                })
+            });
         }
 
         if (!flag)
@@ -1480,12 +1494,12 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                 rand_page = Math.floor(Math.random() * page_count) + 1;
             res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=${rand_page}`);
             
-            const
+            let
                 list = res.currentData.problems.result,
                 rand_idx = Math.floor(Math.random() * list.length);
             while (list[rand_idx].accepted == true && list.length > 0) 
                 list.splice(rand_idx, 1),
-                Math.floor(Math.random() * list.length);
+                rand_idx = Math.floor(Math.random() * list.length);
             if (list.length <= 0) {
                 $("#single-problem").prop("disabled", false);
                 lg_alert("出错了，重来一次吧！");
@@ -1498,7 +1512,65 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             EditConfig("#ExViewData", viewset, pageid2);
             location.href = `/problem/${list[rand_idx].pid}`;
         })
+        
+        $("#constructive-problem").click(async() => {
+            $("#constructive-problem").prop("disabled", true);
+
+            let flag = 0;
+            for (var i in viewset)
+            {
+                if (viewset[i] == null) continue;
+                let nowDate = new Date(), endDate = new Date(viewset[i].date);
+                if (endDate < nowDate)
+                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid1); break; }
+                flag = 1;
+            }
+            if (!!flag) {
+                lg_alert("您已经在写其它题了");
+                $("#constructive-problem").prop("disabled", false);
+                return;
+            }
+
+            let nowdif = 0;
+            for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
+
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: `https://codeforces.com/api/problemset.problems?tags=constructive%20algorithms`,
+                onload: async (res) => {
+                    res = res.responseText;
+                    res = JSON.parse(res);
+                    let list = res.result.problems;
+                    list = list.filter(function(item){
+                        return grade[nowdif - 1] < item.rating && item.rating <= grade[nowdif];
+                    })
+                    let rand_idx = Math.floor(Math.random() * list.length);
+            
+                    let result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
+                    while (result.currentData.problem.accepted == true && list.length > 0) 
+                        list.splice(rand_idx, 1),
+                        rand_idx = Math.floor(Math.random() * list.length),
+                        result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
+                    if (list.length <= 0) {
+                        $("#constructive-problem").prop("disabled", false);
+                        lg_alert("出错了，重来一次吧！");
+                        return;
+                    }
+                    $("#constructive-problem").prop("disabled", false);
+                    var date = new Date();
+                    date = date.getTime() + TimeLong;
+                    viewset.constructive_problem = {"date": new Date(date).getTime(), "problem": [`CF${list[rand_idx].contestId}${list[rand_idx].index}`]};
+                    EditConfig("#ExViewData", viewset, pageid2);
+                    location.href = `/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}`;
+                },
+                onerror: function (res) {
+                    $("#constructive-problem").prop("disabled", false);
+                    lg_alert("无法连接到 Codeforces");
+                }
+            })
+        })
     };
+    
     Config();
 }, `
 .am-u-md-4-5 {
