@@ -1112,7 +1112,7 @@ mod.reg("rand-footprint", "随机足迹", "@/", {
 }
 `)
 
-const grade = [2147483647, 1199, 1199, 1399, 1599, 2099, 2599, 2147483647];
+const grade = [2147483647, 799, 1199, 1399, 1599, 2099, 2599, 2147483647];
 let NewConfig = (a, configs) => {
     new Promise((r) => {
         $.ajax({
@@ -1162,6 +1162,166 @@ date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
 configs = {"constructive_problem": 1200, "dynamic_problem": 1200, "single_problem": 1200, "practice_contest": 1200, "cf_multiple_contest": 1200, "simulation_contest": 0, "date": date};
 viewset = {"constructive_problem":null,"dynamic_problem":null,"single_problem":null,"practice_contest":null,"cf_multiple_contest":null,"simulation_contest":null};
 const TimeLong = 1000 * 60 * 60 + 1000;
+
+let lstpage = -1;
+mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
+    const func = async() => {
+        let u = await lg_content("https://www.luogu.com.cn/paste?_contentOnly");
+        let flag = 0, pageid1;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 11) !== "#ExViewData") return;
+            let k = u.data;
+            pageid1 = u.id;
+            viewset = JSON.parse(k.substr(11, k.lentgh));
+            flag = 1;
+            return;
+        });
+        if (!flag) NewConfig("#ExViewData", viewset);
+        flag = 0;
+        let pageid2;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 12) !== "#ExChartData") return;
+            let k = u.data;
+            pageid2 = u.id;
+            configs = JSON.parse(k.substr(12, k.lentgh));
+            flag = 1;
+            return;
+        });
+        if (flag) {
+            var dateStart = new Date(configs.date);
+            var dateEnd = new Date();
+            var difVal = Math.floor(Math.abs(dateEnd - dateStart) / (1000 * 60 * 60 * 24));
+            for (var i in configs)
+            {
+                if (i == "date") continue;
+                if (configs[i] >= difVal * 5)
+                    configs[i] -= difVal * 5;
+                else configs[i] = 0;
+            }
+            configs.date = dateEnd.getFullYear() + "-" + (dateEnd.getMonth() + 1) + "-" + dateEnd.getDate();
+            EditConfig("#ExChartData", configs, pageid2);
+        }
+        else NewConfig("#ExChartData", configs);
+
+        flag = 0;
+        let Doing;
+        for (var i in viewset)
+        {
+            if (viewset[i] == null) continue;
+            let nowDate = new Date(), endDate = new Date(viewset[i].date);
+            if (endDate < nowDate)
+            { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid1); break; }
+            flag = 1;
+            Doing = i;
+        }
+        $(".field:eq(1)").remove();
+        $(".side > .card.padding-default:eq(1)").addClass("timerboard");
+        if (Doing == "practice_contest") {
+            $("title").text(`练习赛 - 洛谷 | 计算机科学教育新生态`);
+            $(".header > h1").text("练习赛");
+            $(".marked").empty();
+            $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
+            $(`<h2>练习赛</h2><p>题目难度由积分决定</p>`).appendTo($(".marked"));
+            $("li:eq(2)").remove();
+        } else
+            if (Doing == "cf_multiple_contest") {
+                $("title").text(`CF 题 - 洛谷 | 计算机科学教育新生态`);
+                $(".header > h1").text("CF 题"); 
+                $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
+                $(".marked").empty();
+                $(`
+                    <h2>CF 题</h2>
+                    <p><strong>请注意：</strong>CF 题并不是 CF 制，只是同样的题目。<s>因为我不会维护 CF 制</s></p>
+                `).appendTo($(".marked"));
+            } else
+                if (Doing == "simulation_contest") {
+                    $("title").text(`模拟赛 - 洛谷 | 计算机科学教育新生态`);
+                    $(".header > h1").text("模拟赛");
+                    $(".marked").empty();
+                    $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
+                    $(`
+                        <h2>模拟赛</h2>
+                        <p>模拟考试。</p>
+                    `).appendTo($(".marked"));
+                    $("li:eq(2)").remove();
+                } else {
+                    $("title").text(`无比赛 - 洛谷 | 计算机科学教育新生态`);
+                    $(".header > h1").text("无比赛");
+                    $(".marked").empty();
+                    $(`
+                        <h2>无比赛</h2>
+                        <p>您现在并没有在做比赛。</p>
+                    `).appendTo($(".marked"));
+                    $(".value.lfe-caption").text("无");
+                    $("li:eq(2)").remove();
+                    $("li:eq(1)").remove();
+                    return;
+                }
+        $(`<p>比赛将结束时请回到此页面，不然<strong>无法算分</strong>！</p>`).appendTo($(".marked"));
+        var endTime = new Date(viewset[Doing].date), 
+            startTime = new Date(viewset[Doing].date - (TimeLong - 1000) * 4);
+        $("time:eq(0)").text(`${startTime.getFullYear()}-${startTime.getMonth() + 1}-${startTime.getDate()} ${startTime.getHours()}:${startTime.getMinutes()}`);
+        $("time:eq(1)").text(`${endTime.getFullYear()}-${endTime.getMonth() + 1}-${endTime.getDate()} ${endTime.getHours()}:${endTime.getMinutes()}`);
+        $(".info-rows > div:eq(5) > span:eq(1) > span").text(`4.00h`);
+        let nowtime = new Date();
+        let endtime = new Date(viewset[Doing].date);
+        nowtime = endtime.getTime() - nowtime.getTime();
+        let hour = Math.floor(nowtime / (1000*60*60) % 24),
+            minute = Math.floor(nowtime / (1000*60) % 60),
+            sec = Math.floor(nowtime / 1000 % 60);
+        $(".timerboard").html(`
+            <h2 data-v-796309f8="" class="lfe-h2" >
+                本比赛倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}
+            </h2>
+            <p data-v-796309f8="">请耐心作答。</p>
+        `);
+        var Timer_board = setInterval (function () {
+            let nowtime = new Date();
+            let endtime = new Date(viewset[Doing].date);
+            nowtime = endtime.getTime() - nowtime.getTime();
+            if (nowtime < 1000)
+            {
+                clearInterval(Timer_board);
+                $(".timerboard").remove();
+            }
+            let hour = Math.floor(nowtime / (1000*60*60) % 24),
+                minute = Math.floor(nowtime / (1000*60) % 60),
+                sec = Math.floor(nowtime / 1000 % 60);
+            $(`.timerboard > h2`).text(`本比赛倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
+        }, 1000);
+        $("div.row-wrap").empty();
+        for (let i = 0; i <= viewset[Doing].problem.length; i++) {
+            $(`
+                <div data-v-7178e78a="" data-v-24f898d2="" class="row">
+                    <div data-v-7178e78a="" data-v-24f898d2="" class="part">
+                        <span data-v-7178e78a="" data-v-24f898d2="" class="pid">
+                            ${viewset[Doing].problem[i].index}
+                        </span> 
+                        <span data-v-7178e78a="" data-v-24f898d2="" class="score">
+                            ${viewset[Doing].problem[i].fullScore}
+                        </span> 
+                        <div data-v-7178e78a="" data-v-24f898d2="" class="title">
+                            <a data-v-303bbf52="" data-v-7178e78a="" href="/problem/${viewset[Doing].problem[i].pid}" target="_blank" colorscheme="default" class="title color-default" data-v-24f898d2="">
+                                ${viewset[Doing].problem[i].name}
+                            </a>
+                        </div> 
+                    </div>
+                </div>
+            `).appendTo($("div.row-wrap"));
+        }
+    }
+    func();
+}, (e) => {
+    let now_page = uindow.location.href.slice(33);
+    if (now_page !== lst_page) {
+        lst_page = now_page; 
+        return { result: true };
+    }
+}, () => [], ``
+)
+
 mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/AT\\d+(\\#submit+)*$", "@/problem/SP\\d+(\\#submit+)*$", "@/problem/CF\\d\\w+(\\#submit+)*$", "@/problem/UVA\\d+(\\#submit+)*$"], null, () => {
     let Translate = async() => {
         $("mi").remove();
@@ -1215,7 +1375,7 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
         });
         if (!flag) NewConfig("#ExViewData", viewset);
         flag = 0;
-        let pageid2, configs;
+        let pageid2;
         u.currentData.pastes.result.map((u) => {
             if (flag) return;
             if (u.data.substr(0, 12) !== "#ExChartData") return;
@@ -1271,6 +1431,19 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                 $("#timer-board").remove();
                 EditConfig("#ExViewData", viewset, pageid1);
             }
+            const ACcancelDoing = () => {
+                clearInterval(Timer_board);
+                $cp.remove();
+                $("#timer-board").remove();
+                $("div.card.padding-default").css("display", "block");
+
+                let finalscore = viewset[Doing].problem[0].span * 7 + 10 - viewset[Doing].problem[0].times;
+                configs[Doing] += finalscore;
+                EditConfig("#ExChartData", configs, pageid2);
+
+                viewset[Doing] = null;
+                EditConfig("#ExViewData", viewset, pageid1);
+            }
             if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem") {
                 let nowtime = new Date();
                 let endtime = new Date(viewset[Doing].date);
@@ -1278,17 +1451,29 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                 let hour = Math.floor(nowtime / (1000*60*60) % 24),
                     minute = Math.floor(nowtime / (1000*60) % 60),
                     sec = Math.floor(nowtime / 1000 % 60);
-                $(`<div data-v-796309f8="" class="card padding-default" id="timer-board" data-v-6febb0e8=""><h2 data-v-796309f8="" class="lfe-h2" >本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}</h2></div>`).prependTo($("section.side"));
+                $(`
+                    <div data-v-796309f8="" class="card padding-default" id="timer-board" data-v-6febb0e8="">
+                        <h2 data-v-796309f8="" class="lfe-h2" >
+                            本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}
+                        </h2>
+                        <p>
+                            倒计时将结束或题目 AC 后请回到此页面，不然<strong>无法算分</strong>！
+                        </p>
+                    </div>`).prependTo($("section.side"));
                 var Timer_board = setInterval (function () {
                     let nowtime = new Date();
                     let endtime = new Date(viewset[Doing].date);
                     nowtime = endtime.getTime() - nowtime.getTime();
-                    if (nowtime < 1000)
-                    {
+                    if (uindow._feInjection.currentData.problem.accepted == true) {
+                        clearInterval(Timer_board);
+                        $("#timer-board").remove();
+                        ACcancelDoing();
+                    }
+                    if (nowtime < 1000) {
                         clearInterval(Timer_board);
                         $("#timer-board").remove();
                         uindow._feInstance.$swal({
-                            title: "时间结束  您要重写本题吗",
+                            title: "时间到！  您要重写本题吗",
                             text: "如果不，您将会扣分",
                             type: "question",
                             showCancelButton: true,
@@ -1299,7 +1484,7 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                                 var date = new Date();
                                 date = date.getTime() + TimeLong;
                                 $cp.remove();
-                                viewset.single_problem = {"date": new Date(date).getTime(), "problem": [uindow._feInjection.currentData.problem.pid]};
+                                viewset[Doing] = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": viewset.single_problem.problem[0].span, "times": viewset.single_problem.problem[0].times + 1}]};
                                 EditConfig("#ExViewData", viewset, pageid);
                                 beDoing(viewset, Doing);
                             } else {
@@ -1352,9 +1537,11 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                         cancelButtonText: "取消"
                     }).then((result) => {
                         if (result.value) {
+                            let nowdif = 0;
+                            for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
                             var date = new Date();
                             date = date.getTime() + TimeLong;
-                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [uindow._feInjection.currentData.problem.pid]};
+                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": uindow._feInjection.currentData.problem.difficulty - nowdif, "times": 0}]};
                             beDoing(viewset, "single_problem", pageid1);
                             EditConfig("#ExViewData", viewset, pageid1);
                         }
@@ -1367,9 +1554,9 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
             let DoingPid;
             for (var i in viewset[Doing].problem)
             {
-                if (viewset[Doing].problem[i] === uindow._feInjection.currentData.problem.pid)
+                if (viewset[Doing].problem[i].pid === uindow._feInjection.currentData.problem.pid)
                 { flag = true; break; }
-                DoingPid = viewset[Doing].problem[i];
+                DoingPid = viewset[Doing].problem[i].pid;
             }
             if (!flag) {
                 uindow._feInstance.$swal({
@@ -1396,18 +1583,19 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
     $trboard.html(`
         <div class='lg-article exlg-index-stat'>
             <h2>强化训练</h2>
-            <p>
+            <div>
                 单题：
                 <button class="am-btn am-btn-danger am-btn-sm" id="constructive-problem">构造题</button>
                 <button class="am-btn am-btn-primary am-btn-sm" id="dynamic-problem">DP 题</button>
                 <button class="am-btn am-btn-success am-btn-sm" id="single-problem">练习题</button>
-            </p>
-            <p>
+            </div>
+            <div>
                 比赛：
                 <button class="am-btn am-btn-warning am-btn-sm" id="practice-contest">练习赛</button>
                 <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest">CF 题</button>
                 <button class="am-btn am-btn-danger am-btn-sm" id="simulation-contest">模拟赛</button>
-            </p>
+            </div>
+            <div id="prolist"></div>
         </div>
     `);
     $("#exlg-rand-nameboard").after($trboard);
@@ -1466,19 +1654,46 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             return;
         });
         if (!flag) NewConfig("#ExViewData", viewset);
+        
+        let Doingflag = 0, Doing;
+        for (var i in viewset)
+        {
+            if (viewset[i] == null) continue;
+            let nowDate = new Date(), endDate = new Date(viewset[i].date);
+            if (endDate < nowDate)
+            { 
+                if (i === "single_problem" || i === "dynamic_problem" || i === "constructive_problem") {
+                    let res = await lg_content(`/problem/${viewset[i].problem[0].pid}`);
+                    if (res.currentData.problem.accepted == true) {
+                        let finalscore = viewset[i].problem[0].span * 7 + 10 - viewset[i].problem[0].times;
+                        configs[i] += finalscore;
+                        EditConfig("#ExChartData", configs, pageid); 
+                    }
+                }
+                viewset[i] = null; 
+                EditConfig("#ExViewData", viewset, pageid2); 
+                break; 
+            }
+            Doingflag = 1;
+            Doing = i;
+        }
+        if (Doingflag == false) $("#prolist").text("您现在没有在做题");
+        else {
+            $("#prolist").text("您正在做：");
+            for (var i in viewset[Doing].problem)
+                $(`<a href="/problem/${viewset[Doing].problem[i].pid}">${viewset[Doing].problem[i].pid} </a>`).appendTo($("#prolist"));
+        }
+        let randspan = Math.floor(Math.random() * 100), span;
+        if (randspan <= 55) span = 0;
+        else if (randspan <= 78) span = 1;
+        else if (randspan <= 90) span = 2;
+        else if (randspan <= 97) span = 3;
+        else if (randspan <= 99) span = 4;
+        else span = 5;
         $("#single-problem").click(async() => {
             $("#single-problem").prop("disabled", true);
-
-            let flag = 0;
-            for (var i in viewset)
-            {
-                if (viewset[i] == null) continue;
-                let nowDate = new Date(), endDate = new Date(viewset[i].date);
-                if (endDate < nowDate)
-                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid2); break; }
-                flag = 1;
-            }
-            if (!!flag) {
+            
+            if (!!Doingflag) {
                 lg_alert("您已经在写其它题了");
                 $("#single-problem").prop("disabled", false);
                 return;
@@ -1486,13 +1701,14 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
 
             let nowdif = 0;
             for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
+            span = Math.min(nowdif + span, 7) - nowdif;
             let pType = ["P", "CF", "SP", "AT", "UVA"], pT_idx = Math.floor(Math.random() * 5);
-            let res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=1`);
+            let res = await lg_content(`/problem/list?difficulty=${nowdif + span}&type=${pType[pT_idx]}&page=1`);
             const
                 problem_count = res.currentData.problems.count,
                 page_count = Math.ceil(problem_count / 50),
                 rand_page = Math.floor(Math.random() * page_count) + 1;
-            res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=${rand_page}`);
+            res = await lg_content(`/problem/list?difficulty=${nowdif + span}&type=${pType[pT_idx]}&page=${rand_page}`);
             
             let
                 list = res.currentData.problems.result,
@@ -1508,7 +1724,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             $("#single-problem").prop("disabled", false);
             var date = new Date();
             date = date.getTime() + TimeLong;
-            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [list[rand_idx].pid]};
+            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [{"pid": list[rand_idx].pid, "name": list[rand_idx].title, "span": span, "times": 0}]};
             EditConfig("#ExViewData", viewset, pageid2);
             location.href = `/problem/${list[rand_idx].pid}`;
         })
@@ -1516,16 +1732,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
         $("#constructive-problem").click(async() => {
             $("#constructive-problem").prop("disabled", true);
 
-            let flag = 0;
-            for (var i in viewset)
-            {
-                if (viewset[i] == null) continue;
-                let nowDate = new Date(), endDate = new Date(viewset[i].date);
-                if (endDate < nowDate)
-                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid2); break; }
-                flag = 1;
-            }
-            if (!!flag) {
+            if (!!Doingflag) {
                 lg_alert("您已经在写其它题了");
                 $("#constructive-problem").prop("disabled", false);
                 return;
@@ -1533,7 +1740,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
 
             let nowdif = 0;
             for (nowdif = 1; grade[nowdif] < configs.constructive_problem; nowdif++);
-
+            span = Math.min(nowdif + span, 7) - nowdif;
             GM_xmlhttpRequest({
                 method: "GET",
                 url: `https://codeforces.com/api/problemset.problems?tags=constructive%20algorithms`,
@@ -1542,13 +1749,13 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                     res = JSON.parse(res);
                     let list = res.result.problems;
                     list = list.filter(function(item){
-                        return grade[nowdif - 1] < item.rating && item.rating <= grade[nowdif];
+                        return (nowdif + span > 1? grade[nowdif + span - 1]: 0) < item.rating && item.rating <= grade[nowdif + span];
                     })
                     let rand_idx = Math.floor(Math.random() * list.length);
             
                     let result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
                     while ((result.currentData.problem.accepted == true || 
-                        result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif) && 
+                        result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif + span) && 
                         list.length > 0)
 
                         list.splice(rand_idx, 1),
@@ -1556,7 +1763,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                         result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
                     if (list.length <= 0) {
                         $("#constructive-problem").prop("disabled", false);
-                        configs.constructive_problem = grade[nowdif] + 1;
+                        configs.constructive_problem = grade[nowdif + span] + 1;
                         EditConfig("#ExChartData", configs, pageid);
                         lg_alert("出错了，重来一次吧！");
                         return;
@@ -1564,7 +1771,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                     $("#constructive-problem").prop("disabled", false);
                     var date = new Date();
                     date = date.getTime() + TimeLong;
-                    viewset.constructive_problem = {"date": new Date(date).getTime(), "problem": [`CF${list[rand_idx].contestId}${list[rand_idx].index}`]};
+                    viewset.constructive_problem = {"date": new Date(date).getTime(), "problem": [{"pid": `CF${list[rand_idx].contestId}${list[rand_idx].index}`, "name": list[rand_idx].name, "span": (result.currentData.problem.difficulty > 0? result.currentData.problem.difficulty - nowdif: span), "times": 0}]};
                     EditConfig("#ExViewData", viewset, pageid2);
                     location.href = `/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}`;
                 },
@@ -1577,22 +1784,14 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
 
         $("#dynamic-problem").click(async() => {
             $("#dynamic-problem").prop("disabled", true);
-            let flag = 0;
-            for (var i in viewset)
-            {
-                if (viewset[i] == null) continue;
-                let nowDate = new Date(), endDate = new Date(viewset[i].date);
-                if (endDate < nowDate)
-                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid2); break; }
-                flag = 1;
-            }
-            if (!!flag) {
+            if (!!Doingflag) {
                 lg_alert("您已经在写其它题了");
                 $("#dynamic-problem").prop("disabled", false);
                 return;
             }
             let nowdif = 0;
             for (nowdif = 1; grade[nowdif] < configs.dynamic_problem; nowdif++);
+            span = Math.min(nowdif + span, 7) - nowdif;
             let which = Math.floor(Math.random() * 2);
             if (which == 1) {
                 GM_xmlhttpRequest({
@@ -1603,28 +1802,28 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                         res = JSON.parse(res);
                         let list = res.result.problems;
                         list = list.filter(function(item){
-                            return grade[nowdif - 1] < item.rating && item.rating <= grade[nowdif];
+                            return (nowdif + span > 1? grade[nowdif + span - 1]: 0) < item.rating && item.rating <= grade[nowdif + span];
                         })
                         let rand_idx = Math.floor(Math.random() * list.length);
                 
                         let result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
                         while ((result.currentData.problem.accepted == true || 
-                            result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif) && 
+                            result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif + span) && 
                             list.length > 0)
                             list.splice(rand_idx, 1),
                             rand_idx = Math.floor(Math.random() * list.length),
                             result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
                         if (list.length <= 0) {
                             $("#dynamic-problem").prop("disabled", false);
-                            configs.dynamic_problem = grade[nowdif] + 1;
+                            configs.dynamic_problem = grade[nowdif + span] + 1;
                             EditConfig("#ExChartData", configs, pageid);
                             lg_alert("出错了，重来一次吧！");
                             return;
                         }
-                        $("#-problem").prop("disabled", false);
+                        $("#dynamic-problem").prop("disabled", false);
                         var date = new Date();
                         date = date.getTime() + TimeLong;
-                        viewset.dynamic_problem = {"date": new Date(date).getTime(), "problem": [`CF${list[rand_idx].contestId}${list[rand_idx].index}`]};
+                        viewset.dynamic_problem = {"date": new Date(date).getTime(), "problem": [{"pid": `CF${list[rand_idx].contestId}${list[rand_idx].index}`, "name": list[rand_idx].name, "span": (result.currentData.problem.difficulty > 0? result.currentData.problem.difficulty - nowdif: span), "times": 0}]};
                         EditConfig("#ExViewData", viewset, pageid2);
                         location.href = `/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}`;
                     },
@@ -1635,12 +1834,12 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                 })
             } else {
                 let pType = ["P", "SP", "AT", "UVA"], pT_idx = Math.floor(Math.random() * 4);
-                let res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=1&tag=3`);
+                let res = await lg_content(`/problem/list?difficulty=${nowdif + span}&type=${pType[pT_idx]}&page=1&tag=3`);
                 const
                     problem_count = res.currentData.problems.count,
                     page_count = Math.ceil(problem_count / 50),
                     rand_page = Math.floor(Math.random() * page_count) + 1;
-                res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=${rand_page}&tag=3`);
+                res = await lg_content(`/problem/list?difficulty=${nowdif + span}&type=${pType[pT_idx]}&page=${rand_page}&tag=3`);
                 
                 let
                     list = res.currentData.problems.result,
@@ -1656,7 +1855,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                 $("#dynamic-problem").prop("disabled", false);
                 var date = new Date();
                 date = date.getTime() + TimeLong;
-                viewset.dynamic_problem = {"date": new Date(date).getTime(), "problem": [list[rand_idx].pid]};
+                viewset.dynamic_problem = {"date": new Date(date).getTime(), "problem": [{"pid": list[rand_idx].pid, "name": list[rand_idx].title, "span": span, "times": 0}]};
                 EditConfig("#ExViewData", viewset, pageid2);
                 location.href = `/problem/${list[rand_idx].pid}`;
             }
