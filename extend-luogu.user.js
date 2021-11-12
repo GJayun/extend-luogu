@@ -1162,7 +1162,7 @@ date = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
 configs = {"constructive_problem": 1200, "dynamic_problem": 1200, "single_problem": 1200, "practice_contest": 1200, "cf_multiple_contest": 1200, "simulation_contest": 0, "date": date};
 viewset = {"constructive_problem":null,"dynamic_problem":null,"single_problem":null,"practice_contest":null,"cf_multiple_contest":null,"simulation_contest":null};
 const TimeLong = 1000 * 60 * 60 + 1000;
-mod.reg("exview", "读题功能", "@/problem/.*", null, () => {
+mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/AT\\d+(\\#submit+)*$", "@/problem/SP\\d+(\\#submit+)*$", "@/problem/CF\\d\\w+(\\#submit+)*$", "@/problem/UVA\\d+(\\#submit+)*$"], null, () => {
     let Translate = async() => {
         $("mi").remove();
         $("annotation").remove();
@@ -1475,7 +1475,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                 if (viewset[i] == null) continue;
                 let nowDate = new Date(), endDate = new Date(viewset[i].date);
                 if (endDate < nowDate)
-                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid1); break; }
+                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid2); break; }
                 flag = 1;
             }
             if (!!flag) {
@@ -1522,7 +1522,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                 if (viewset[i] == null) continue;
                 let nowDate = new Date(), endDate = new Date(viewset[i].date);
                 if (endDate < nowDate)
-                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid1); break; }
+                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid2); break; }
                 flag = 1;
             }
             if (!!flag) {
@@ -1532,7 +1532,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             }
 
             let nowdif = 0;
-            for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
+            for (nowdif = 1; grade[nowdif] < configs.constructive_problem; nowdif++);
 
             GM_xmlhttpRequest({
                 method: "GET",
@@ -1547,12 +1547,17 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                     let rand_idx = Math.floor(Math.random() * list.length);
             
                     let result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
-                    while (result.currentData.problem.accepted == true && list.length > 0) 
+                    while ((result.currentData.problem.accepted == true || 
+                        result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif) && 
+                        list.length > 0)
+
                         list.splice(rand_idx, 1),
                         rand_idx = Math.floor(Math.random() * list.length),
                         result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
                     if (list.length <= 0) {
                         $("#constructive-problem").prop("disabled", false);
+                        configs.constructive_problem = grade[nowdif] + 1;
+                        EditConfig("#ExChartData", configs, pageid);
                         lg_alert("出错了，重来一次吧！");
                         return;
                     }
@@ -1568,6 +1573,93 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                     lg_alert("无法连接到 Codeforces");
                 }
             })
+        })
+
+        $("#dynamic-problem").click(async() => {
+            $("#dynamic-problem").prop("disabled", true);
+            let flag = 0;
+            for (var i in viewset)
+            {
+                if (viewset[i] == null) continue;
+                let nowDate = new Date(), endDate = new Date(viewset[i].date);
+                if (endDate < nowDate)
+                { viewset[i] = null; EditConfig("#ExViewData", viewset, pageid2); break; }
+                flag = 1;
+            }
+            if (!!flag) {
+                lg_alert("您已经在写其它题了");
+                $("#dynamic-problem").prop("disabled", false);
+                return;
+            }
+            let nowdif = 0;
+            for (nowdif = 1; grade[nowdif] < configs.dynamic_problem; nowdif++);
+            let which = Math.floor(Math.random() * 2);
+            if (which == 1) {
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: `https://codeforces.com/api/problemset.problems?tags=dp`,
+                    onload: async (res) => {
+                        res = res.responseText;
+                        res = JSON.parse(res);
+                        let list = res.result.problems;
+                        list = list.filter(function(item){
+                            return grade[nowdif - 1] < item.rating && item.rating <= grade[nowdif];
+                        })
+                        let rand_idx = Math.floor(Math.random() * list.length);
+                
+                        let result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
+                        while ((result.currentData.problem.accepted == true || 
+                            result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif) && 
+                            list.length > 0)
+                            list.splice(rand_idx, 1),
+                            rand_idx = Math.floor(Math.random() * list.length),
+                            result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
+                        if (list.length <= 0) {
+                            $("#dynamic-problem").prop("disabled", false);
+                            configs.dynamic_problem = grade[nowdif] + 1;
+                            EditConfig("#ExChartData", configs, pageid);
+                            lg_alert("出错了，重来一次吧！");
+                            return;
+                        }
+                        $("#-problem").prop("disabled", false);
+                        var date = new Date();
+                        date = date.getTime() + TimeLong;
+                        viewset.dynamic_problem = {"date": new Date(date).getTime(), "problem": [`CF${list[rand_idx].contestId}${list[rand_idx].index}`]};
+                        EditConfig("#ExViewData", viewset, pageid2);
+                        location.href = `/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}`;
+                    },
+                    onerror: function (res) {
+                        $("#dynamic-problem").prop("disabled", false);
+                        lg_alert("无法连接到 Codeforces...出错了，重来一次吧！");
+                    }
+                })
+            } else {
+                let pType = ["P", "SP", "AT", "UVA"], pT_idx = Math.floor(Math.random() * 4);
+                let res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=1&tag=3`);
+                const
+                    problem_count = res.currentData.problems.count,
+                    page_count = Math.ceil(problem_count / 50),
+                    rand_page = Math.floor(Math.random() * page_count) + 1;
+                res = await lg_content(`/problem/list?difficulty=${nowdif}&type=${pType[pT_idx]}&page=${rand_page}&tag=3`);
+                
+                let
+                    list = res.currentData.problems.result,
+                    rand_idx = Math.floor(Math.random() * list.length);
+                while (list[rand_idx].accepted === true && list.length > 0) 
+                    list.splice(rand_idx, 1),
+                    rand_idx = Math.floor(Math.random() * list.length);
+                if (list.length <= 0) {
+                    $("#dynamic-problem").prop("disabled", false);
+                    lg_alert("出错了，重来一次吧！");
+                    return;
+                }
+                $("#dynamic-problem").prop("disabled", false);
+                var date = new Date();
+                date = date.getTime() + TimeLong;
+                viewset.dynamic_problem = {"date": new Date(date).getTime(), "problem": [list[rand_idx].pid]};
+                EditConfig("#ExViewData", viewset, pageid2);
+                location.href = `/problem/${list[rand_idx].pid}`;
+            }
         })
     };
     
