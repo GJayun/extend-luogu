@@ -1926,6 +1926,52 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             EditConfig("#ExViewData", viewset, pageid2);
             location.href = `contest/1`;
         })
+        $("#cf-multiple-contest").click(async() => {
+            $("#cf-multiple-contest").prop("disabled", true);
+            if (!!Doingflag) {
+                lg_alert("您已经在写其它题了");
+                $("#cf-multiple-contest").prop("disabled", false);
+                return;
+            }
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: `https://codeforces.com/api/contest.list`,
+                onload: async (res) => {
+                    res = JSON.parse(res.responseText).result;
+                    let nowdif = configs.cf_multiple_contest;
+                    res = res.filter(function(item){
+                        return ((item.name.match(/Div. 1/gi) && nowdif >= 1900) ||
+                        (item.name.match(/Div. 2/gi) && nowdif <= 2099) ||
+                        (item.name.match(/Div. 3/gi) && nowdif <= 1399) ||
+                        item.name.match(/Div. 1 + Div. 2/gi) ||
+                        item.name.match(/Global/gi)) && (item.phase.match(/FINISHED/gi));
+                    })
+                    console.log(res);
+                },
+                onerror: function (res) {
+                    $("#cf-multiple-contest").prop("disabled", false);
+                    lg_alert("无法连接到 Codeforces...");
+                }
+            })
+            // GM_xmlhttpRequest({
+            //     method: "GET",
+            //     url: `https://codeforces.com/contest/1606`,
+            //     onload: async (res) => {
+            //         res = res.responseText;
+            //         var s = document.createElement('div'); s.innerHTML = res;
+            //         let htmllist = s.querySelectorAll("td.id > a");
+            //         let list = [];
+            //         for (let i = 0; i < htmllist.length; i++) {
+            //             list[i] = htmllist[i].href.slice(46);
+            //         }
+            //         console.log(list);
+            //     },
+            //     onerror: function (res) {
+            //         $("#cf-multiple-contest").prop("disabled", false);
+            //         lg_alert("无法连接到 Codeforces...");
+            //     }
+            // })
+        })
     };
     
     Config();
