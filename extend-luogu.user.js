@@ -1257,14 +1257,15 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
                     $(".value.lfe-caption").text("无");
                     $("li:eq(2)").remove();
                     $("li:eq(1)").remove();
+                    $("time").text("未来");
                     return;
                 }
-        $(`<p>比赛将结束时请回到此页面，不然<strong>无法算分</strong>！</p>`).appendTo($(".marked"));
+        $(`<p>比赛将结束时请回到此页面，否则<strong>无法算分</strong>！</p>`).appendTo($(".marked"));
         var endTime = new Date(viewset[Doing].date), 
-            startTime = new Date(viewset[Doing].date - (TimeLong - 1000) * 4);
-        $("time:eq(0)").text(`${startTime.getFullYear()}-${startTime.getMonth() + 1}-${startTime.getDate()} ${startTime.getHours()}:${startTime.getMinutes()}`);
-        $("time:eq(1)").text(`${endTime.getFullYear()}-${endTime.getMonth() + 1}-${endTime.getDate()} ${endTime.getHours()}:${endTime.getMinutes()}`);
-        $(".info-rows > div:eq(5) > span:eq(1) > span").text(`4.00h`);
+            startTime = new Date(viewset[Doing].date - (TimeLong - 1000) * viewset[Doing].TimeLong);
+        $("time:eq(0)").text(`${startTime.getFullYear()}-${(startTime.getMonth()+1).toString().padStart(2,'0')}-${startTime.getDate().toString().padStart(2,'0')} ${startTime.getHours().toString().padStart(2,'0')}:${startTime.getMinutes().toString().padStart(2,'0')}`);
+        $("time:eq(1)").text(`${endTime.getFullYear()}-${(endTime.getMonth()+1).toString().padStart(2,'0')}-${endTime.getDate().toString().padStart(2,'0')} ${endTime.getHours().toString().padStart(2,'0')}:${endTime.getMinutes().toString().padStart(2,'0')}`);
+        $(".info-rows > div:eq(5) > span:eq(1) > span").text(`${viewset[Doing].TimeLong.toFixed(2)}h`);
         let nowtime = new Date();
         let endtime = new Date(viewset[Doing].date);
         nowtime = endtime.getTime() - nowtime.getTime();
@@ -1277,14 +1278,40 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
             </h2>
             <p data-v-796309f8="">请耐心作答。</p>
         `);
-        var Timer_board = setInterval (function () {
+        let Finish = async () => {
+            $cp.remove();
+            clearInterval(Timer_board);
+            $(".timerboard").remove();
+            uindow._feInstance.$swalToastSuccess("比赛结束！");
+            let finalscore = 0;
+            for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                let res = await lg_content(`/problem/${viewset[Doing].problem[i].pid}`);
+                if (res.currentData.problem.type == "P")
+                    finalscore += res.currentData.problem.score;
+                else
+                    finalscore += viewset[Doing].problem[i].fullScore * res.currentData.problem.accepted;
+            }
+            configs[Doing] += finalscore - 155;
+            EditConfig("#ExChartData", configs, pageid2);
+            viewset[Doing] = null;
+            EditConfig("#ExViewData", viewset, pageid1);
+            uindow.location.reload();
+        }
+        $(".operation").empty();
+        $cp = $(`<button id="finish" type="button" class="lfe-form-sz-middle" style="border-color: rgb(221, 81, 76) !important; background-color: rgb(221, 81, 76) !important; display:inline-block; flex:none; outline:0; cursor:pointer; color:#fff; font-weight:inherit; line-height:1.5; text-align:center; vertical-align:middle; background:0 0; border-radius:3px; border:1px solid">AK 了？提前结束！</button>`);
+        $cp.hover(
+            function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
+            function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
+        $cp.prependTo(".operation");
+        $cp.click(Finish);
+        var Timer_board = setInterval (async () => {
             let nowtime = new Date();
             let endtime = new Date(viewset[Doing].date);
             nowtime = endtime.getTime() - nowtime.getTime();
             if (nowtime < 1000)
             {
-                clearInterval(Timer_board);
-                $(".timerboard").remove();
+                Finish();
+                return;
             }
             let hour = Math.floor(nowtime / (1000*60*60) % 24),
                 minute = Math.floor(nowtime / (1000*60) % 60),
@@ -1457,7 +1484,7 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                             本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}
                         </h2>
                         <p>
-                            倒计时将结束或题目 AC 后请回到此页面，不然<strong>无法算分</strong>！
+                            倒计时将结束或题目 AC 后请回到此页面，否则<strong>无法算分</strong>！
                         </p>
                     </div>`).prependTo($("section.side"));
                 var Timer_board = setInterval (function () {
@@ -1566,7 +1593,9 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                     timer: 2000,
                     showConfirmButton: false,
                 }).then(() =>{
-                    uindow.location = `/problem/${DoingPid}`;
+                    if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
+                        uindow.location = `/problem/${DoingPid}`;
+                    else uindow.location = "/contest/1";
                 })
             }
             else {
@@ -1859,6 +1888,43 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                 EditConfig("#ExViewData", viewset, pageid2);
                 location.href = `/problem/${list[rand_idx].pid}`;
             }
+        })
+        $("#practice-contest").click(async() => {
+            $("#practice-contest").prop("disabled", true);
+            if (!!Doingflag) {
+                lg_alert("您已经在写其它题了");
+                $("#practice-contest").prop("disabled", false);
+                return;
+            }
+            let nowdif = 0;
+            for (nowdif = 1; grade[nowdif] < configs.practice_contest; nowdif++);
+            span = Math.min(nowdif + 1, 7) - nowdif;
+            var date = new Date();
+            date = date.getTime() + TimeLong * 4;
+            viewset.practice_contest = {"date": new Date(date).getTime(), "TimeLong": 4.00, "problem": []};
+            for (let i = 0; i < 4;)
+            {
+                let pType = ["P", "CF", "SP", "AT", "UVA"], pT_idx = Math.floor(Math.random() * 5);
+                let res = await lg_content(`/problem/list?difficulty=${nowdif + (i == 3? span: 0)}&type=${pType[pT_idx]}&page=1`);
+                const
+                    problem_count = res.currentData.problems.count,
+                    page_count = Math.ceil(problem_count / 50),
+                    rand_page = Math.floor(Math.random() * page_count) + 1;
+                res = await lg_content(`/problem/list?difficulty=${nowdif + (i == 3? span: 0)}&type=${pType[pT_idx]}&page=${rand_page}`);
+                            
+                let
+                    list = res.currentData.problems.result,
+                    rand_idx = Math.floor(Math.random() * list.length);
+                while (list[rand_idx].accepted == true && list.length > 0) 
+                    list.splice(rand_idx, 1),
+                    rand_idx = Math.floor(Math.random() * list.length);
+                if (list.length <= 0) { continue; }
+                viewset.practice_contest.problem.push({"pid": list[rand_idx].pid, "name": list[rand_idx].title, "index": String.fromCharCode(i + 65), "fullScore": list[rand_idx].fullScore});
+                i++;
+            }
+            $("#practice-contest").prop("disabled", false);
+            EditConfig("#ExViewData", viewset, pageid2);
+            location.href = `contest/1`;
         })
     };
     
