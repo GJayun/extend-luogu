@@ -1720,8 +1720,12 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
                 clearInterval(Timer_board);
                 $cp.remove();
                 $("div.card.padding-default").css("display", "block");
-                viewset[Doing] = null;
                 $("#timer-board").remove();
+
+                configs[Doing] -= 10;
+                EditConfig("#ExChartData", configs, pageid2);
+
+                viewset[Doing] = null;
                 EditConfig("#ExViewData", viewset, pageid1);
             }
             const ACcancelDoing = () => {
