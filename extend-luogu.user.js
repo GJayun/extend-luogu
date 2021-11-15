@@ -17,6 +17,7 @@
 // @connect        bens.rotriw.com
 // @connect        fanyi.youdao.com
 // @connect        codeforces.com
+// @connect        v1.jinrishici.com
 //
 // @require        https://cdn.luogu.com.cn/js/jquery-2.1.1.min.js
 // @require        https://cdn.bootcdn.net/ajax/libs/js-xss/0.3.3/xss.min.js
@@ -562,6 +563,19 @@ mod.reg_hook_new("dash-bridge", "控制桥", "@/.*", {
     .exlg-difficulty-color.color-7 { color: rgb(14, 29, 105)!important; }
 
     button { margin-bottom: 3px !important; }
+    
+    .user-brown { color: #996600 !important; }
+    .user-gray { color: #bbb !important; }
+    .user-blue { color: #0e90d2 !important; }
+    .user-green { color: #5eb95e !important; }
+    .user-orange { color: #e67e22 !important; }
+    .user-red { color: #e74c3c !important; }
+    .user-purple { color: #8e44ad !important; }
+
+    .score-0 { color: rgb(231, 76, 60); }
+    .score-1 { color: rgb(243, 156, 17); }
+    .score-2 { color: rgb(250, 219, 20); }
+    .score-3 { color: rgb(82, 196, 26); }
 `)
 
 mod.reg_chore("update", "检查更新", "1D", mod.path_dash_board, null, () => {
@@ -944,6 +958,90 @@ mod.reg("benben", "全网犇犇", "@/", {
         })
 })
 
+mod.reg("poem-task", "古诗词和每日任务", "@/", {
+    total: { ty: "number" },
+    tasklist: {
+        ty: "tuple",
+        lvs: [
+            { ty: "string", dft: false, strict: true, repeat: 50 }
+        ],
+        priv: true
+    }
+}, ({msto}) => {
+    let $board = $(`
+        <div class="am-u-md-12 ">
+            <div class="lg-article">
+                <div class="am-g">
+                <div class="am-u-md-4 lg-punch am-text-center" id="gushici" style="top: 50%;margin-top: -40px;position: absolute;">
+                        <strong></strong>
+                    </div>
+                    <div class="am-u-md-8">
+                        <h2>你的任务</h2>
+                        <div class="lg-article exlg-index-stat exlg-editor" id="task-list">
+                        </div>
+                        <input type="text" class="am-form-field" placeholder="输入你的任务(不支持 Markdown)" id="exlg-task">
+                        <p>
+                            <button class="am-btn am-btn-danger am-btn-sm" id="add-task">添加</button>
+                            <button class="am-btn am-btn-group am-btn-sm" id="empty-task">一键清空</button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `);
+    $board.prependTo(".lg-index-content");
+    $board.next().insertBefore($board);
+    GM_xmlhttpRequest({
+        method: "GET",
+        url: `https://v1.jinrishici.com/rensheng`,
+        onload: function (res) {
+            res = JSON.parse(res.responseText);
+            $(`<div style="font-size: 2.0rem">${res.content}</div>`).appendTo("#gushici > strong");
+            $(`<div style="font-size: 1.8rem">《${res.origin}》—${res.author}</div>`).appendTo("#gushici");
+        },
+        onerror: function () {
+            $(`<div style="font-size: 2.0rem">不经一番寒彻骨，怎得梅花扑鼻香。</div>`).appendTo("#gushici > strong");
+            $(`<div style="font-size: 1.8rem">《上堂开示颂》—黄蘖禅师</div>`).appendTo("#gushici");
+        }
+    });
+    if (msto.total == null) msto.total = 0;
+    const writetask = () => {
+        $("#task-list").empty();
+        for (let i = 0; i < msto.total; i++)
+        {
+            $(`<div> ${msto.tasklist[i]}</div>`).appendTo("#task-list")
+            let $bt = $(`<i class="am-icon-minus remove-task" data="${i}"></i>`);
+            $bt.prependTo(`#task-list > div:eq(${i})`);
+            $bt.click(() => {
+                var data = parseInt($bt.attr("data"));
+                for (var j = data; j < msto.total; j++) {
+                    if(msto.tasklist[j + 1] != false)
+                        msto.tasklist[j] = msto.tasklist[j + 1];
+                }
+                msto.total --;
+                writetask();
+            })
+        }
+    }
+    writetask(); 
+    const add = () => {
+        if (msto.total >= 50) { lg_alert("不要超过五十个哦！"); return; }
+        msto.tasklist[msto.total++] = $("#exlg-task").val();
+        writetask();
+    }
+    $("#add-task").click(add);
+    $("#empty-task").click(() => {
+        msto.total = 0;
+        writetask();
+    });
+    $("#exlg-task").keydown(e => { e.key === "Enter" && add() })
+}, `
+    @import url('https://fonts.googleapis.com/css?family=Long+Cang');
+    #gushici {
+        font-family: 'Long Cang',cursive;
+    }
+`)
+
 mod.reg("rand-footprint", "随机足迹", "@/", {
     total: { ty: "number" },
     checked: { ty: "boolean" },
@@ -989,10 +1087,10 @@ mod.reg("rand-footprint", "随机足迹", "@/", {
     $board.after($nameboard);
     if (msto.total == null) msto.total = 0;
     const writename = () => {
-        $(".exlg-editor").empty();
+        $("#exlg-rand-nameboard > div").empty();
         for (let i = 0; i < msto.total; i++)
         {
-            $(`<p>@<a href="/user/${msto.Usersname[i]}">${msto.Usn[i]}</a></p>`).appendTo(".exlg-editor");
+            $(`<div>@<a href="/user/${msto.Usersname[i]}">${msto.Usn[i]}</a></div>`).appendTo("#exlg-rand-nameboard > div");
         }
     }
     writename();
@@ -1104,9 +1202,6 @@ mod.reg("rand-footprint", "随机足迹", "@/", {
 .exlg-index-stat{
     height: 190px;
 }
-#exlg-rand-nameboard{
-    line-height: 0.5 !important;
-}
 .exlg-editor{
     overflow: auto;
 }
@@ -1163,8 +1258,107 @@ configs = {"constructive_problem": 1200, "dynamic_problem": 1200, "single_proble
 viewset = {"constructive_problem":null,"dynamic_problem":null,"single_problem":null,"practice_contest":null,"cf_multiple_contest":null,"simulation_contest":null};
 const TimeLong = 1000 * 60 * 60 + 1000;
 
+mod.reg("contest-jump", "比赛跳转", "@/contest/\\d.*", null, () => {
+    let nowtime = new Date();
+    if (uindow.location.href.replace(/[^0-9]/ig,"") == 1 || nowtime < uindow._feInjection.currentData.contest.endTime * 1000) return;
+    const addcontest = async function () {
+        let u = await lg_content("https://www.luogu.com.cn/paste?_contentOnly");
+        let flag = 0, pageid;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 12) !== "#ExChartData") return;
+            let k = u.data;
+            pageid = u.id;
+            configs = JSON.parse(k.substr(12, k.length));
+            flag = 1;
+            return;
+        }   );
+        if (flag) {
+            var dateStart = new Date(configs.date + " 0:00:00");
+            var dateEnd = new Date();
+            var difVal = Math.floor(Math.abs(dateEnd - dateStart) / (1000 * 60 * 60 * 24));
+            for (var i in configs)
+            {
+                if (i == "date") continue;
+                if (configs[i] >= difVal * 5)
+                    configs[i] -= difVal * 5;
+                    else configs[i] = 0;
+            }
+            configs.date = dateEnd.getFullYear() + "-" + (dateEnd.getMonth() + 1) + "-" + dateEnd.getDate();
+            EditConfig("#ExChartData", configs, pageid);
+        }
+        else{
+            NewConfig("#ExChartData", configs);
+        }
+        flag = 0;
+        let pageid2;
+        u.currentData.pastes.result.map((u) => {
+            if (flag) return;
+            if (u.data.substr(0, 11) !== "#ExViewData") return;
+            let k = u.data;
+            pageid2 = u.id;
+            viewset = JSON.parse(k.substr(11, k.length));
+            flag = 1;
+            return;
+        });
+        if (!flag) NewConfig("#ExViewData", viewset);
+        
+        let Doingflag = 0, Doing, DoingPid;
+        for (var i in viewset)
+        {
+            if (viewset[i] == null) continue;
+            let nowDate = new Date(), endDate = new Date(viewset[i].date);
+            if (endDate < nowDate)
+            { 
+                if (i === "single_problem" || i === "dynamic_problem" || i === "constructive_problem") {
+                    let res = await lg_content(`/problem/${viewset[i].problem[0].pid}`);
+                    if (res.currentData.problem.accepted == true) {
+                        let finalscore = viewset[i].problem[0].span * 7 + 10 - viewset[i].problem[0].times;
+                        configs[i] += finalscore;
+                        EditConfig("#ExChartData", configs, pageid); 
+                    }
+                }
+                viewset[i] = null; 
+                EditConfig("#ExViewData", viewset, pageid2); 
+                break; 
+            }
+            DoingPid = viewset[i].problem[0].pid;
+            Doingflag = 1;
+            Doing = i;
+        }
+        if (Doingflag) {
+            uindow._feInstance.$swal({
+                title: "您已经在写其它题了",
+                text: "2 秒后跳转到您正在写的题目",
+                type: "warning",
+                timer: 2000,
+                showConfirmButton: false,
+            }).then(() =>{
+                if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
+                    uindow.location = `/problem/${DoingPid}`;
+                else uindow.location = "/contest/1";
+            })
+        }
+        var date = new Date();
+        date = date.getTime() + (uindow._feInjection.currentData.contest.endTime - uindow._feInjection.currentData.contest.startTime) * 1000;
+        viewset.practice_contest = {"date": new Date(date).getTime(), "TimeLong": (uindow._feInjection.currentData.contest.endTime - uindow._feInjection.currentData.contest.startTime) / 3600, "problem": []};
+        for (let i = 0; i < uindow._feInjection.currentData.contestProblems.length; i++) {
+            viewset.practice_contest.problem.push({"pid": uindow._feInjection.currentData.contestProblems[i].problem.pid, "name": uindow._feInjection.currentData.contestProblems[i].problem.title, "index": String.fromCharCode(i + 65), "fullScore": uindow._feInjection.currentData.contestProblems[i].problem.fullScore});
+        }
+        EditConfig("#ExViewData", viewset, pageid2);
+        location.href = `https://www.luogu.com.cn/contest/1`;
+    }   
+    $cp = $(`<button id="start" type="button" class="lfe-form-sz-middle" style="border-color: rgb(221, 81, 76) !important; background-color: rgb(221, 81, 76) !important; display:inline-block; flex:none; outline:0; cursor:pointer; color:#fff; font-weight:inherit; line-height:1.5; text-align:center; vertical-align:middle; background:0 0; border-radius:3px; border:1px solid">开始比赛</button>`);
+    $cp.hover(
+        function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
+        function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
+    $cp.prependTo(".operation");
+    $cp.click(addcontest);
+}, ``)
+
 let lstpage = -1;
-mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
+let flagarr = [];
+mod.reg_hook("excontest", "比赛功能", ["@/contest/1.*", "@/record/.*"], null, () => {
     const func = async() => {
         let u = await lg_content("https://www.luogu.com.cn/paste?_contentOnly");
         let flag = 0, pageid1;
@@ -1173,7 +1367,7 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
             if (u.data.substr(0, 11) !== "#ExViewData") return;
             let k = u.data;
             pageid1 = u.id;
-            viewset = JSON.parse(k.substr(11, k.lentgh));
+            viewset = JSON.parse(k.substr(11, k.length));
             flag = 1;
             return;
         });
@@ -1185,7 +1379,7 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
             if (u.data.substr(0, 12) !== "#ExChartData") return;
             let k = u.data;
             pageid2 = u.id;
-            configs = JSON.parse(k.substr(12, k.lentgh));
+            configs = JSON.parse(k.substr(12, k.length));
             flag = 1;
             return;
         });
@@ -1216,6 +1410,15 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
             flag = 1;
             Doing = i;
         }
+
+        if (Doing === "practice_contest" || Doing === "simulation_contest")
+            $(".lfe-body:eq(0) > a:eq(3)").remove();
+
+        if (uindow.location.href.match(/record/gi)) {
+            if (Doing == "practice_contest" || Doing == "simulation_contest")
+                uindow.location.href = "https://www.luogu.com.cn/contest/1";
+            return;
+        }
         $(".field:eq(1)").remove();
         $(".side > .card.padding-default:eq(1)").addClass("timerboard");
         if (Doing == "practice_contest") {
@@ -1233,6 +1436,7 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
                 $(".marked").empty();
                 $(`
                     <h2>CF 题</h2>
+                    <p>排行榜会出锅，并不会修......</p>
                     <p><strong>请注意：</strong>CF 题并不是 CF 制，只是同样的题目。<s>因为我不会维护 CF 制</s></p>
                 `).appendTo($(".marked"));
             } else
@@ -1291,7 +1495,7 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
                 else
                     finalscore += viewset[Doing].problem[i].fullScore * res.currentData.problem.accepted;
             }
-            configs[Doing] += finalscore - 155;
+            configs[Doing] += finalscore - Math.floor(38.75 * viewset[Doing].problem.length);
             EditConfig("#ExChartData", configs, pageid2);
             viewset[Doing] = null;
             EditConfig("#ExViewData", viewset, pageid1);
@@ -1318,38 +1522,93 @@ mod.reg_hook("excontest", "比赛功能", "@/contest/1.*", null, () => {
                 sec = Math.floor(nowtime / 1000 % 60);
             $(`.timerboard > h2`).text(`本比赛倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
         }, 1000);
-        $("div.row-wrap").empty();
-        for (let i = 0; i <= viewset[Doing].problem.length; i++) {
-            $(`
-                <div data-v-7178e78a="" data-v-24f898d2="" class="row">
-                    <div data-v-7178e78a="" data-v-24f898d2="" class="part">
-                        <span data-v-7178e78a="" data-v-24f898d2="" class="pid">
-                            ${viewset[Doing].problem[i].index}
-                        </span> 
-                        <span data-v-7178e78a="" data-v-24f898d2="" class="score">
-                            ${viewset[Doing].problem[i].fullScore}
-                        </span> 
-                        <div data-v-7178e78a="" data-v-24f898d2="" class="title">
-                            <a data-v-303bbf52="" data-v-7178e78a="" href="/problem/${viewset[Doing].problem[i].pid}" target="_blank" colorscheme="default" class="title color-default" data-v-24f898d2="">
-                                ${viewset[Doing].problem[i].name}
-                            </a>
-                        </div> 
+        if (uindow.location.href.match(/problems/gi)) {
+            $("div.row-wrap").empty();
+            for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                $(`
+                    <div data-v-7178e78a="" data-v-24f898d2="" class="row">
+                        <div data-v-7178e78a="" data-v-24f898d2="" class="part">
+                            <span data-v-7178e78a="" data-v-24f898d2="" class="pid">
+                                ${viewset[Doing].problem[i].index}
+                            </span> 
+                            <span data-v-7178e78a="" data-v-24f898d2="" class="score">
+                                ${viewset[Doing].problem[i].fullScore}
+                            </span> 
+                            <div data-v-7178e78a="" data-v-24f898d2="" class="title">
+                                <a data-v-303bbf52="" data-v-7178e78a="" href="/problem/${viewset[Doing].problem[i].pid}" target="_blank" colorscheme="default" class="title color-default" data-v-24f898d2="">
+                                    ${viewset[Doing].problem[i].name}
+                                </a>
+                            </div> 
+                        </div>
                     </div>
+                `).appendTo($("div.row-wrap"));
+            }
+        }
+        if (uindow.location.href.match(/scoreboard/gi)) {
+            let finalscore = 0;
+            $("div.row-wrap > .row > .score").remove();
+            for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                if (flagarr[i] == 1) continue;
+                flagarr[i] = 1;
+                let res = await lg_content(`/problem/${viewset[Doing].problem[i].pid}`);
+                let scocol, col = [30, 60, 80, 2147483647], nowsco;
+                if (res.currentData.problem.type == "P")
+                    nowsco = res.currentData.problem.score;
+                else
+                    nowsco = viewset[Doing].problem[i].fullScore * res.currentData.problem.accepted;
+                for (scocol = 0; col[scocol] <= nowsco; scocol++);
+                $(`
+                    <div data-v-0f607a24="" data-v-24f898d2="" class="score">
+                        <span data-v-0f607a24="" data-v-24f898d2="" class="score-${scocol}" style="font-weight: bold;">${nowsco}</span>
+                    </div>
+                `).appendTo("div.row-wrap > .row");
+                finalscore += nowsco;
+            }
+            if (flagarr[viewset[Doing].problem.length] != 1) {
+                flagarr[viewset[Doing].problem.length] = 1;
+                $("div.row-wrap > .row > .score:eq(0)").before($(`
+                <div data-v-0f607a24="" data-v-24f898d2="" class="score">
+                <span data-v-0f607a24="" data-v-24f898d2="" style="font-weight: bold;">${finalscore}</span>
                 </div>
-            `).appendTo($("div.row-wrap"));
+                `))
+            }
+            $("div.row-wrap > .row > .user").empty();
+            $(`
+                <span data-v-6eed723a="" data-v-0f607a24="" class="wrapper" data-v-24f898d2="">
+                    <a data-v-303bbf52="" data-v-6eed723a="" href="/user/${uindow._feInjection.currentUser.uid}" target="_blank" colorscheme="none">
+                        <span data-v-6eed723a="" data-v-303bbf52="" class="user-${uindow._feInjection.currentUser.color.toLowerCase()}" style="font-weight: bold;">${uindow._feInjection.currentUser.name}</span>
+                    </a>
+                </span>
+            `).appendTo("div.row-wrap > .row > .user");
+            $(".header-wrap > .header > .score").remove();
+            $(`
+                <div data-v-0f607a24="" sortparams="[object Object]" class="score" data-v-24f898d2="">
+                    <span class="lfe-caption">总分
+                    </span>
+                </div>
+            `).appendTo(".header-wrap > .header");
+            for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                $(`
+                    <div data-v-0f607a24="" sortparams="[object Object]" class="score" data-v-24f898d2="">
+                        <span class="lfe-caption">
+                            <span data-v-0f607a24="" data-original-title="null" class=" has-tooltip" style="width: 100%;">${viewset[Doing].problem[i].index}</span>
+                        </span>
+                    </div>
+                `).appendTo(".header-wrap > .header");
+            }
         }
     }
     func();
 }, (e) => {
     let now_page = uindow.location.href.slice(33);
     if (now_page !== lst_page) {
+        flagarr.splice(0, flagarr.length);
         lst_page = now_page; 
         return { result: true };
     }
-}, () => [], ``
-)
+}, () => [], ``)
 
-mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/AT\\d+(\\#submit+)*$", "@/problem/SP\\d+(\\#submit+)*$", "@/problem/CF\\d\\w+(\\#submit+)*$", "@/problem/UVA\\d+(\\#submit+)*$"], null, () => {
+mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submit+)*$", "@/problem/AT\\d+(\\#submit+)*$", "@/problem/SP\\d+(\\#submit+)*$", "@/problem/CF\\d\\w+(\\#submit+)*$", "@/problem/UVA\\d+(\\#submit+)*$"], null, () => {
     let Translate = async() => {
         $("mi").remove();
         $("annotation").remove();
@@ -1396,7 +1655,7 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
             if (u.data.substr(0, 11) !== "#ExViewData") return;
             let k = u.data;
             pageid1 = u.id;
-            viewset = JSON.parse(k.substr(11, k.lentgh));
+            viewset = JSON.parse(k.substr(11, k.length));
             flag = 1;
             return;
         });
@@ -1408,7 +1667,7 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
             if (u.data.substr(0, 12) !== "#ExChartData") return;
             let k = u.data;
             pageid2 = u.id;
-            configs = JSON.parse(k.substr(12, k.lentgh));
+            configs = JSON.parse(k.substr(12, k.length));
             flag = 1;
             return;
         });
@@ -1439,6 +1698,13 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
             flag = 1;
             Doing = i;
         }
+
+        if (uindow.location.href.match(/record/gi)) {
+            if (Doing == "practice_contest" || Doing == "simulation_contest")
+                uindow.location.href = "https://www.luogu.com.cn/contest/1";
+            return;
+        }
+
         const beDoing = (viewset, Doing, pageid) => {
             $cp = $(`<button data-v-370e72e2="" data-v-43063e73="" type="button" class="lfe-form-sz-middle" data-v-52820d90="" style="border-color: rgb(221, 81, 76); background-color: rgb(221, 81, 76);">取消做题</button>`);
             $cp.hover(
@@ -1525,6 +1791,8 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                     $(`#timer-board > h2`).text(`本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
                 }, 1000);
             }
+            if (Doing === "practice_contest" || Doing === "simulation_contest")
+                $(".lfe-body:eq(0) > a:eq(3)").remove();
             $cp.click(function(){
                 uindow._feInstance.$swal({
                     title: "您确定要取消做题吗",
@@ -1568,7 +1836,7 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
                             for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
                             var date = new Date();
                             date = date.getTime() + TimeLong;
-                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": uindow._feInjection.currentData.problem.difficulty - nowdif, "times": 0}]};
+                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": Math.max(uindow._feInjection.currentData.problem.difficulty - nowdif, 0), "times": 0}]};
                             beDoing(viewset, "single_problem", pageid1);
                             EditConfig("#ExViewData", viewset, pageid1);
                         }
@@ -1603,9 +1871,16 @@ mod.reg("exview", "读题功能", ["@/problem/P\\d+(\\#submit+)*$", "@/problem/A
             }
         }
     };
-    Translate();
+    if (!uindow.location.href.match(/record/gi)) Translate();
     View();
-}, ``)
+}, (e) => {
+    let now_page = uindow.location.href.slice(33);
+    if (now_page !== lst_page) {
+        flagarr.splice(0, flagarr.length);
+        lst_page = now_page; 
+        return { result: true };
+    }
+}, () => [], ``)
 
 mod.reg("develop-training", "训练强化", "@/", null, () => {
     let $trboard = $("<div class='am-u-md-4' name='exlg-train-board'></div>");
@@ -1649,7 +1924,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             if (u.data.substr(0, 12) !== "#ExChartData") return;
             let k = u.data;
             pageid = u.id;
-            configs = JSON.parse(k.substr(12, k.lentgh));
+            configs = JSON.parse(k.substr(12, k.length));
             flag = 1;
             return;
         });
@@ -1678,7 +1953,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             if (u.data.substr(0, 11) !== "#ExViewData") return;
             let k = u.data;
             pageid2 = u.id;
-            viewset = JSON.parse(k.substr(11, k.lentgh));
+            viewset = JSON.parse(k.substr(11, k.length));
             flag = 1;
             return;
         });
@@ -1946,31 +2221,81 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                         item.name.match(/Div. 1 + Div. 2/gi) ||
                         item.name.match(/Global/gi)) && (item.phase.match(/FINISHED/gi));
                     })
-                    console.log(res);
+                    let rand_idx = Math.floor(Math.random() * res.length), contestid = res[rand_idx].id;
+                    var date = new Date();
+                    viewset.cf_multiple_contest = {"date": date.getTime() + res[rand_idx].durationSeconds * 1000, "TimeLong": res[rand_idx].durationSeconds / 3600, "problem": []};
+                    GM_xmlhttpRequest({
+                        method: "GET",
+                        url: `https://codeforces.com/contest/${contestid}`,
+                        onload: async (result) => {
+                            result = result.responseText;
+                            var s = document.createElement('div'); s.innerHTML = result;
+                            let htmllist = s.querySelectorAll("td.id > a");
+                            let list = [];
+                            for (let i = 0; i < htmllist.length; i++) {
+                                list[i] = htmllist[i].text.replace(/\ +/g,"").replace(/[\r\n]/g,"");
+                            }
+                            for (let i = 0; i < list.length; i++) {
+                                let u = await lg_content(`/problem/CF${contestid}${list[i]}?_contentOnly`);
+                                u = u.currentData.problem;
+                                viewset.cf_multiple_contest.problem.push({"pid": `CF${contestid}${list[i]}`, "name": u.title, "index": `${list[i]}`, "fullScore": u.fullScore});
+                            }
+                            $("#practice-contest").prop("disabled", false);
+                            EditConfig("#ExViewData", viewset, pageid2);
+                            location.href = `contest/1`;
+                        },
+                        onerror: function (result) {
+                            $("#cf-multiple-contest").prop("disabled", false);
+                            lg_alert("无法连接到 Codeforces...");
+                        }
+                    })
                 },
                 onerror: function (res) {
                     $("#cf-multiple-contest").prop("disabled", false);
                     lg_alert("无法连接到 Codeforces...");
                 }
             })
-            // GM_xmlhttpRequest({
-            //     method: "GET",
-            //     url: `https://codeforces.com/contest/1606`,
-            //     onload: async (res) => {
-            //         res = res.responseText;
-            //         var s = document.createElement('div'); s.innerHTML = res;
-            //         let htmllist = s.querySelectorAll("td.id > a");
-            //         let list = [];
-            //         for (let i = 0; i < htmllist.length; i++) {
-            //             list[i] = htmllist[i].href.slice(46);
-            //         }
-            //         console.log(list);
-            //     },
-            //     onerror: function (res) {
-            //         $("#cf-multiple-contest").prop("disabled", false);
-            //         lg_alert("无法连接到 Codeforces...");
-            //     }
-            // })
+        })
+        $("#simulation-contest").click(async() => {
+            $("#simulation-contest").prop("disabled", true);
+            if (!!Doingflag) {
+                lg_alert("您已经在写其它题了");
+                $("#simulation-contest").prop("disabled", false);
+                return;
+            }
+            let nowdif = 0;
+            for (nowdif = 1; grade[nowdif] < configs.simulation_contest; nowdif++);
+            if (nowdif == 4) nowdif = 5;
+            if (nowdif >= 5) nowdif += 3;
+            span = Math.min(nowdif + 1, 7) - nowdif;
+            var date = new Date();
+            date = date.getTime() + TimeLong * 4;
+            viewset.simulation_contest = {"date": new Date(date).getTime(), "TimeLong": 4.00, "problem": []};
+            for (let i = 0; i < 4;)
+            {
+                let pType = ["P", "CF", "SP", "AT", "UVA"], pT_idx = Math.floor(Math.random() * 5);
+                let difarr = [4, 5, 6, 6], difrnd = Math.floor(Math.random() * 10) + 1 <= nowdif;
+                let res = await lg_content(`/problem/list?difficulty=${difarr[i] + difrnd}&type=${pType[pT_idx]}&page=1`);
+                const
+                    problem_count = res.currentData.problems.count,
+                    page_count = Math.ceil(problem_count / 50),
+                    rand_page = Math.floor(Math.random() * page_count) + 1;
+                res = await lg_content(`/problem/list?difficulty=${difarr[i] + difrnd}&type=${pType[pT_idx]}&page=${rand_page}`);
+                            
+                let
+                    list = res.currentData.problems.result,
+                    rand_idx = Math.floor(Math.random() * list.length);
+                while (list[rand_idx].accepted == true && list.length > 0) 
+                    list.splice(rand_idx, 1),
+                    rand_idx = Math.floor(Math.random() * list.length);
+                if (list.length <= 0) { continue; }
+                viewset.simulation_contest.problem.push({"pid": list[rand_idx].pid, "name": list[rand_idx].title, "index": String.fromCharCode(i + 65), "fullScore": list[rand_idx].fullScore});
+                i++;
+            }
+            $("#simulation-contest").prop("disabled", false);
+            EditConfig("#ExViewData", viewset, pageid2);
+            location.href = `contest/1`;
+
         })
     };
     
