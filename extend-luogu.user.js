@@ -563,7 +563,7 @@ mod.reg_hook_new("dash-bridge", "控制桥", "@/.*", {
     .exlg-difficulty-color.color-7 { color: rgb(14, 29, 105)!important; }
 
     button { margin-bottom: 3px !important; }
-    
+
     .user-brown { color: #996600 !important; }
     .user-gray { color: #bbb !important; }
     .user-blue { color: #0e90d2 !important; }
@@ -1023,7 +1023,7 @@ mod.reg("poem-task", "古诗词和每日任务", "@/", {
             })
         }
     }
-    writetask(); 
+    writetask();
     const add = () => {
         if (msto.total >= 50) { lg_alert("不要超过五十个哦！"); return; }
         msto.tasklist[msto.total++] = $("#exlg-task").val();
@@ -1302,25 +1302,25 @@ mod.reg("contest-jump", "比赛跳转", "@/contest/\\d.*", null, () => {
             return;
         });
         if (!flag) NewConfig("#ExViewData", viewset);
-        
+
         let Doingflag = 0, Doing, DoingPid;
         for (var i in viewset)
         {
             if (viewset[i] == null) continue;
             let nowDate = new Date(), endDate = new Date(viewset[i].date);
             if (endDate < nowDate)
-            { 
+            {
                 if (i === "single_problem" || i === "dynamic_problem" || i === "constructive_problem") {
                     let res = await lg_content(`/problem/${viewset[i].problem[0].pid}`);
                     if (res.currentData.problem.accepted == true) {
                         let finalscore = viewset[i].problem[0].span * 7 + 10 - viewset[i].problem[0].times;
                         configs[i] += finalscore;
-                        EditConfig("#ExChartData", configs, pageid); 
+                        EditConfig("#ExChartData", configs, pageid);
                     }
                 }
-                viewset[i] = null; 
-                EditConfig("#ExViewData", viewset, pageid2); 
-                break; 
+                viewset[i] = null;
+                EditConfig("#ExViewData", viewset, pageid2);
+                break;
             }
             DoingPid = viewset[i].problem[0].pid;
             Doingflag = 1;
@@ -1347,7 +1347,7 @@ mod.reg("contest-jump", "比赛跳转", "@/contest/\\d.*", null, () => {
         }
         EditConfig("#ExViewData", viewset, pageid2);
         location.href = `https://www.luogu.com.cn/contest/1`;
-    }   
+    }
     $cp = $(`<button id="start" type="button" class="lfe-form-sz-middle" style="border-color: rgb(221, 81, 76) !important; background-color: rgb(221, 81, 76) !important; display:inline-block; flex:none; outline:0; cursor:pointer; color:#fff; font-weight:inherit; line-height:1.5; text-align:center; vertical-align:middle; background:0 0; border-radius:3px; border:1px solid">开始比赛</button>`);
     $cp.hover(
         function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
@@ -1431,7 +1431,7 @@ mod.reg_hook("excontest", "比赛功能", ["@/contest/1.*", "@/record/.*"], null
         } else
             if (Doing == "cf_multiple_contest") {
                 $("title").text(`CF 题 - 洛谷 | 计算机科学教育新生态`);
-                $(".header > h1").text("CF 题"); 
+                $(".header > h1").text("CF 题");
                 $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
                 $(".marked").empty();
                 $(`
@@ -1465,7 +1465,7 @@ mod.reg_hook("excontest", "比赛功能", ["@/contest/1.*", "@/record/.*"], null
                     return;
                 }
         $(`<p>比赛将结束时请回到此页面，否则<strong>无法算分</strong>！</p>`).appendTo($(".marked"));
-        var endTime = new Date(viewset[Doing].date), 
+        var endTime = new Date(viewset[Doing].date),
             startTime = new Date(viewset[Doing].date - (TimeLong - 1000) * viewset[Doing].TimeLong);
         $("time:eq(0)").text(`${startTime.getFullYear()}-${(startTime.getMonth()+1).toString().padStart(2,'0')}-${startTime.getDate().toString().padStart(2,'0')} ${startTime.getHours().toString().padStart(2,'0')}:${startTime.getMinutes().toString().padStart(2,'0')}`);
         $("time:eq(1)").text(`${endTime.getFullYear()}-${(endTime.getMonth()+1).toString().padStart(2,'0')}-${endTime.getDate().toString().padStart(2,'0')} ${endTime.getHours().toString().padStart(2,'0')}:${endTime.getMinutes().toString().padStart(2,'0')}`);
@@ -1530,15 +1530,15 @@ mod.reg_hook("excontest", "比赛功能", ["@/contest/1.*", "@/record/.*"], null
                         <div data-v-7178e78a="" data-v-24f898d2="" class="part">
                             <span data-v-7178e78a="" data-v-24f898d2="" class="pid">
                                 ${viewset[Doing].problem[i].index}
-                            </span> 
+                            </span>
                             <span data-v-7178e78a="" data-v-24f898d2="" class="score">
                                 ${viewset[Doing].problem[i].fullScore}
-                            </span> 
+                            </span>
                             <div data-v-7178e78a="" data-v-24f898d2="" class="title">
                                 <a data-v-303bbf52="" data-v-7178e78a="" href="/problem/${viewset[Doing].problem[i].pid}" target="_blank" colorscheme="default" class="title color-default" data-v-24f898d2="">
                                     ${viewset[Doing].problem[i].name}
                                 </a>
-                            </div> 
+                            </div>
                         </div>
                     </div>
                 `).appendTo($("div.row-wrap"));
@@ -1603,11 +1603,12 @@ mod.reg_hook("excontest", "比赛功能", ["@/contest/1.*", "@/record/.*"], null
     let now_page = uindow.location.href.slice(33);
     if (now_page !== lst_page) {
         flagarr.splice(0, flagarr.length);
-        lst_page = now_page; 
+        lst_page = now_page;
         return { result: true };
     }
 }, () => [], ``)
 
+let btflag, btflag2, btflag3, btflag4;
 mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submit+)*$", "@/problem/AT\\d+(\\#submit+)*$", "@/problem/SP\\d+(\\#submit+)*$", "@/problem/CF\\d\\w+(\\#submit+)*$", "@/problem/UVA\\d+(\\#submit+)*$"], null, () => {
     let Translate = async() => {
         $("mi").remove();
@@ -1711,11 +1712,14 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
             $cp.hover(
                 function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
                 function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
-            if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
-                    $cp.prependTo(".operation");
-            $("div.card.padding-default").css("display", "none");
-            $("div.problem-card").css("display", "block");
-            $("#translate").css("display", "block");
+            if (btflag != true) {
+                btflag = true;
+                if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
+                $cp.prependTo(".operation");
+                $("div.card.padding-default").css("display", "none");
+                $("div.problem-card").css("display", "block");
+                $("#translate").css("display", "block");
+            }
 
             const cancelDoing = () => {
                 clearInterval(Timer_board);
@@ -1749,6 +1753,8 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
                 let hour = Math.floor(nowtime / (1000*60*60) % 24),
                     minute = Math.floor(nowtime / (1000*60) % 60),
                     sec = Math.floor(nowtime / 1000 % 60);
+
+                $("#timer-board").remove();
                 $(`
                     <div data-v-796309f8="" class="card padding-default" id="timer-board" data-v-6febb0e8="">
                         <h2 data-v-796309f8="" class="lfe-h2" >
@@ -1770,25 +1776,28 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
                     if (nowtime < 1000) {
                         clearInterval(Timer_board);
                         $("#timer-board").remove();
-                        uindow._feInstance.$swal({
-                            title: "时间到！  您要重写本题吗",
-                            text: "如果不，您将会扣分",
-                            type: "question",
-                            showCancelButton: true,
-                            confirmButtonText: "确定",
-                            cancelButtonText: "取消"
-                        }).then((result) => {
-                            if (result.value) {
-                                var date = new Date();
-                                date = date.getTime() + TimeLong;
-                                $cp.remove();
-                                viewset[Doing] = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": viewset.single_problem.problem[0].span, "times": viewset.single_problem.problem[0].times + 1}]};
-                                EditConfig("#ExViewData", viewset, pageid);
-                                beDoing(viewset, Doing);
-                            } else {
-                                cancelDoing();
-                            }
-                        })
+                        if (btflag2 != true) {
+                            btflag2 = true;
+                            uindow._feInstance.$swal({
+                                title: "时间到！  您要重写本题吗",
+                                text: "如果不，您将会扣分",
+                                type: "question",
+                                showCancelButton: true,
+                                confirmButtonText: "确定",
+                                cancelButtonText: "取消"
+                            }).then((result) => {
+                                if (result.value) {
+                                    var date = new Date();
+                                    date = date.getTime() + TimeLong;
+                                    $cp.remove();
+                                    viewset[Doing] = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": viewset.single_problem.problem[0].span, "times": viewset.single_problem.problem[0].times + 1}]};
+                                    EditConfig("#ExViewData", viewset, pageid);
+                                    beDoing(viewset, Doing);
+                                } else {
+                                    cancelDoing();
+                                }
+                            })
+                        }
                     }
                     let hour = Math.floor(nowtime / (1000*60*60) % 24),
                         minute = Math.floor(nowtime / (1000*60) % 60),
@@ -1829,23 +1838,26 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
                     );
                 }
                 else {
-                    uindow._feInstance.$swal({
-                        title: "您确定要写本题吗",
-                        type: "question",
-                        showCancelButton: true,
-                        confirmButtonText: "确定",
-                        cancelButtonText: "取消"
-                    }).then((result) => {
-                        if (result.value) {
-                            let nowdif = 0;
-                            for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
-                            var date = new Date();
-                            date = date.getTime() + TimeLong;
-                            viewset.single_problem = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": Math.max(uindow._feInjection.currentData.problem.difficulty - nowdif, 0), "times": 0}]};
-                            beDoing(viewset, "single_problem", pageid1);
-                            EditConfig("#ExViewData", viewset, pageid1);
-                        }
-                    })
+                    if (btflag4 != true) {
+                        btflag4 = true;
+                        uindow._feInstance.$swal({
+                            title: "您确定要写本题吗",
+                            type: "question",
+                            showCancelButton: true,
+                            confirmButtonText: "确定",
+                            cancelButtonText: "取消"
+                        }).then((result) => {
+                            if (result.value) {
+                                let nowdif = 0;
+                                for (nowdif = 1; grade[nowdif] < configs.single_problem; nowdif++);
+                                var date = new Date();
+                                date = date.getTime() + TimeLong;
+                                viewset.single_problem = {"date": new Date(date).getTime(), "problem": [{"pid": uindow._feInjection.currentData.problem.pid, "name": uindow._feInjection.currentData.problem.title, "span": Math.max(uindow._feInjection.currentData.problem.difficulty - nowdif, 0), "times": 0}]};
+                                beDoing(viewset, "single_problem", pageid1);
+                                EditConfig("#ExViewData", viewset, pageid1);
+                            }
+                        })
+                    }
                 }
             }
         }
@@ -1859,17 +1871,20 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
                 DoingPid = viewset[Doing].problem[i].pid;
             }
             if (!flag) {
-                uindow._feInstance.$swal({
-                    title: "您已经在写其它题了",
-                    text: "2 秒后跳转到您正在写的题目",
-                    type: "warning",
-                    timer: 2000,
-                    showConfirmButton: false,
-                }).then(() =>{
-                    if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
+                if (btflag3 != true) {
+                    btflag3 = true;
+                    uindow._feInstance.$swal({
+                        title: "您已经在写其它题了",
+                        text: "2 秒后跳转到您正在写的题目",
+                        type: "warning",
+                        timer: 2000,
+                        showConfirmButton: false,
+                    }).then(() =>{
+                        if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
                         uindow.location = `/problem/${DoingPid}`;
-                    else uindow.location = "/contest/1";
-                })
+                        else uindow.location = "/contest/1";
+                    })
+                }
             }
             else {
                 beDoing(viewset, Doing, pageid1);
@@ -1881,8 +1896,9 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
 }, (e) => {
     let now_page = uindow.location.href.slice(33);
     if (now_page !== lst_page) {
+        btflag = btflag2 = btflag3 = btflag4 = false;
         flagarr.splice(0, flagarr.length);
-        lst_page = now_page; 
+        lst_page = now_page;
         return { result: true };
     }
 }, () => [], ``)
@@ -1963,25 +1979,25 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             return;
         });
         if (!flag) NewConfig("#ExViewData", viewset);
-        
+
         let Doingflag = 0, Doing;
         for (var i in viewset)
         {
             if (viewset[i] == null) continue;
             let nowDate = new Date(), endDate = new Date(viewset[i].date);
             if (endDate < nowDate)
-            { 
+            {
                 if (i === "single_problem" || i === "dynamic_problem" || i === "constructive_problem") {
                     let res = await lg_content(`/problem/${viewset[i].problem[0].pid}`);
                     if (res.currentData.problem.accepted == true) {
                         let finalscore = viewset[i].problem[0].span * 7 + 10 - viewset[i].problem[0].times;
                         configs[i] += finalscore;
-                        EditConfig("#ExChartData", configs, pageid); 
+                        EditConfig("#ExChartData", configs, pageid);
                     }
                 }
-                viewset[i] = null; 
-                EditConfig("#ExViewData", viewset, pageid2); 
-                break; 
+                viewset[i] = null;
+                EditConfig("#ExViewData", viewset, pageid2);
+                break;
             }
             Doingflag = 1;
             Doing = i;
@@ -2001,7 +2017,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
         else span = 5;
         $("#single-problem").click(async() => {
             $("#single-problem").prop("disabled", true);
-            
+
             if (!!Doingflag) {
                 lg_alert("您已经在写其它题了");
                 $("#single-problem").prop("disabled", false);
@@ -2018,11 +2034,11 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                 page_count = Math.ceil(problem_count / 50),
                 rand_page = Math.floor(Math.random() * page_count) + 1;
             res = await lg_content(`/problem/list?difficulty=${nowdif + span}&type=${pType[pT_idx]}&page=${rand_page}`);
-            
+
             let
                 list = res.currentData.problems.result,
                 rand_idx = Math.floor(Math.random() * list.length);
-            while (list[rand_idx].accepted == true && list.length > 0) 
+            while (list[rand_idx].accepted == true && list.length > 0)
                 list.splice(rand_idx, 1),
                 rand_idx = Math.floor(Math.random() * list.length);
             if (list.length <= 0) {
@@ -2037,7 +2053,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             EditConfig("#ExViewData", viewset, pageid2);
             location.href = `/problem/${list[rand_idx].pid}`;
         })
-        
+
         $("#constructive-problem").click(async() => {
             $("#constructive-problem").prop("disabled", true);
 
@@ -2061,10 +2077,10 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                         return (nowdif + span > 1? grade[nowdif + span - 1]: 0) < item.rating && item.rating <= grade[nowdif + span];
                     })
                     let rand_idx = Math.floor(Math.random() * list.length);
-            
+
                     let result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
-                    while ((result.currentData.problem.accepted == true || 
-                        result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif + span) && 
+                    while ((result.currentData.problem.accepted == true ||
+                        result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif + span) &&
                         list.length > 0)
 
                         list.splice(rand_idx, 1),
@@ -2114,10 +2130,10 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                             return (nowdif + span > 1? grade[nowdif + span - 1]: 0) < item.rating && item.rating <= grade[nowdif + span];
                         })
                         let rand_idx = Math.floor(Math.random() * list.length);
-                
+
                         let result = await lg_content(`https://www.luogu.com.cn/problem/CF${list[rand_idx].contestId}${list[rand_idx].index}?_contentOnly`);
-                        while ((result.currentData.problem.accepted == true || 
-                            result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif + span) && 
+                        while ((result.currentData.problem.accepted == true ||
+                            result.currentData.problem.difficulty > 0 && result.currentData.problem.difficulty < nowdif + span) &&
                             list.length > 0)
                             list.splice(rand_idx, 1),
                             rand_idx = Math.floor(Math.random() * list.length),
@@ -2149,11 +2165,11 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                     page_count = Math.ceil(problem_count / 50),
                     rand_page = Math.floor(Math.random() * page_count) + 1;
                 res = await lg_content(`/problem/list?difficulty=${nowdif + span}&type=${pType[pT_idx]}&page=${rand_page}&tag=3`);
-                
+
                 let
                     list = res.currentData.problems.result,
                     rand_idx = Math.floor(Math.random() * list.length);
-                while (list[rand_idx].accepted === true && list.length > 0) 
+                while (list[rand_idx].accepted === true && list.length > 0)
                     list.splice(rand_idx, 1),
                     rand_idx = Math.floor(Math.random() * list.length);
                 if (list.length <= 0) {
@@ -2191,11 +2207,11 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                     page_count = Math.ceil(problem_count / 50),
                     rand_page = Math.floor(Math.random() * page_count) + 1;
                 res = await lg_content(`/problem/list?difficulty=${nowdif + (i == 3? span: 0)}&type=${pType[pT_idx]}&page=${rand_page}`);
-                            
+
                 let
                     list = res.currentData.problems.result,
                     rand_idx = Math.floor(Math.random() * list.length);
-                while (list[rand_idx].accepted == true && list.length > 0) 
+                while (list[rand_idx].accepted == true && list.length > 0)
                     list.splice(rand_idx, 1),
                     rand_idx = Math.floor(Math.random() * list.length);
                 if (list.length <= 0) { continue; }
@@ -2286,11 +2302,11 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
                     page_count = Math.ceil(problem_count / 50),
                     rand_page = Math.floor(Math.random() * page_count) + 1;
                 res = await lg_content(`/problem/list?difficulty=${difarr[i] + difrnd}&type=${pType[pT_idx]}&page=${rand_page}`);
-                            
+
                 let
                     list = res.currentData.problems.result,
                     rand_idx = Math.floor(Math.random() * list.length);
-                while (list[rand_idx].accepted == true && list.length > 0) 
+                while (list[rand_idx].accepted == true && list.length > 0)
                     list.splice(rand_idx, 1),
                     rand_idx = Math.floor(Math.random() * list.length);
                 if (list.length <= 0) { continue; }
@@ -2303,7 +2319,7 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
 
         })
     };
-    
+
     Config();
 }, `
 .am-u-md-4-5 {
