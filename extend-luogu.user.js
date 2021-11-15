@@ -1612,6 +1612,7 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
     let Translate = async() => {
         $("mi").remove();
         $("annotation").remove();
+        $("#translate").remove();
         $transborad = $(`<div data-v-796309f8="" class="card padding-default" id="translate" data-v-6febb0e8="">
             <h3 data-v-2017244a="" data-v-796309f8="" class="lfe-h3">翻译</h3>
             <p>框选内容，点击按钮即可翻译！</p>
