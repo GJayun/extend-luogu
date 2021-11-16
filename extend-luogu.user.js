@@ -1708,7 +1708,8 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
         }
 
         const beDoing = (viewset, Doing, pageid) => {
-            $cp = $(`<button data-v-370e72e2="" data-v-43063e73="" type="button" class="lfe-form-sz-middle" data-v-52820d90="" style="border-color: rgb(221, 81, 76); background-color: rgb(221, 81, 76);">取消做题</button>`);
+            $("#cancel-doing-problem").remove();
+            $cp = $(`<button data-v-370e72e2="" data-v-43063e73="" type="button" class="lfe-form-sz-middle" data-v-52820d90="" id="cancel-doing-problem" style="border-color: rgb(221, 81, 76); background-color: rgb(221, 81, 76);">取消做题</button>`);
             $cp.hover(
                 function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
                 function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
