@@ -1713,14 +1713,13 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
             $cp.hover(
                 function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
                 function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
-            if (btflag != true) {
-                btflag = true;
-                if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
-                $cp.prependTo(".operation");
-                $("div.card.padding-default").css("display", "none");
-                $("div.problem-card").css("display", "block");
-                $("#translate").css("display", "block");
-            }
+
+            if (Doing === "single_problem" || Doing === "dynamic_problem" || Doing === "constructive_problem")
+            $cp.prependTo(".operation");
+            $("div.card.padding-default").css("display", "none");
+            $("div.problem-card").css("display", "block");
+            $("#translate").css("display", "block");
+
 
             const cancelDoing = () => {
                 clearInterval(Timer_board);
