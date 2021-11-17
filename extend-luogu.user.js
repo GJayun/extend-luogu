@@ -1829,13 +1829,16 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
             {
                 let dif = uindow._feInjection.currentData.problem.difficulty;
                 if (grade[dif] < configs.single_problem) {
-                    uindow._feInstance.$swal({
+                    if (btflag != true) {
+                        btflag = true;
+                        uindow._feInstance.$swal({
                             title: "本题难度低，不予计分",
                             type: "warning",
                             showCancelButton: !1,
                             confirmButtonText: "确定",
                         }
-                    );
+                        );
+                    }
                 }
                 else {
                     if (btflag4 != true) {
