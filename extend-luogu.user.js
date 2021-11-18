@@ -1411,190 +1411,193 @@ mod.reg_hook("excontest", "比赛功能", ["@/contest/1.*", "@/record/.*"], null
             Doing = i;
         }
 
-        if (Doing === "practice_contest" || Doing === "simulation_contest")
-            $(".lfe-body:eq(0) > a:eq(3)").remove();
-
         if (uindow.location.href.match(/record/gi)) {
             if (Doing == "practice_contest" || Doing == "simulation_contest")
-                uindow.location.href = "https://www.luogu.com.cn/contest/1";
+            uindow.location.href = "https://www.luogu.com.cn/contest/1";
             return;
         }
-        $(".field:eq(1)").remove();
-        $(".side > .card.padding-default:eq(1)").addClass("timerboard");
-        if (Doing == "practice_contest") {
-            $("title").text(`练习赛 - 洛谷 | 计算机科学教育新生态`);
-            $(".header > h1").text("练习赛");
-            $(".marked").empty();
-            $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
-            $(`<h2>练习赛</h2><p>题目难度由积分决定</p>`).appendTo($(".marked"));
-            $("li:eq(2)").remove();
-        } else
-            if (Doing == "cf_multiple_contest") {
-                $("title").text(`CF 题 - 洛谷 | 计算机科学教育新生态`);
-                $(".header > h1").text("CF 题");
-                $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
+        if (uindow.location.href.match(/contest/gi)) {
+
+            if (Doing === "practice_contest" || Doing === "simulation_contest")
+                $(".lfe-body:eq(0) > a:eq(3)").remove();
+
+            $(".field:eq(1)").remove();
+            $(".side > .card.padding-default:eq(1)").addClass("timerboard");
+            if (Doing == "practice_contest") {
+                $("title").text(`练习赛 - 洛谷 | 计算机科学教育新生态`);
+                $(".header > h1").text("练习赛");
                 $(".marked").empty();
-                $(`
-                    <h2>CF 题</h2>
-                    <p>排行榜会出锅，并不会修......</p>
-                    <p><strong>请注意：</strong>CF 题并不是 CF 制，只是同样的题目。<s>因为我不会维护 CF 制</s></p>
-                `).appendTo($(".marked"));
+                $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
+                $(`<h2>练习赛</h2><p>题目难度由积分决定</p>`).appendTo($(".marked"));
+                $("li:eq(2)").remove();
             } else
-                if (Doing == "simulation_contest") {
-                    $("title").text(`模拟赛 - 洛谷 | 计算机科学教育新生态`);
-                    $(".header > h1").text("模拟赛");
-                    $(".marked").empty();
+                if (Doing == "cf_multiple_contest") {
+                    $("title").text(`CF 题 - 洛谷 | 计算机科学教育新生态`);
+                    $(".header > h1").text("CF 题");
                     $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
-                    $(`
-                        <h2>模拟赛</h2>
-                        <p>模拟考试。</p>
-                    `).appendTo($(".marked"));
-                    $("li:eq(2)").remove();
-                } else {
-                    $("title").text(`无比赛 - 洛谷 | 计算机科学教育新生态`);
-                    $(".header > h1").text("无比赛");
                     $(".marked").empty();
                     $(`
-                        <h2>无比赛</h2>
-                        <p>您现在并没有在做比赛。</p>
+                        <h2>CF 题</h2>
+                        <p>排行榜会出锅，并不会修......</p>
+                        <p><strong>请注意：</strong>CF 题并不是 CF 制，只是同样的题目。<s>因为我不会维护 CF 制</s></p>
                     `).appendTo($(".marked"));
-                    $(".value.lfe-caption").text("无");
-                    $("li:eq(2)").remove();
-                    $("li:eq(1)").remove();
-                    $("time").text("未来");
-                    return;
-                }
-        $(`<p>比赛将结束时请回到此页面，否则<strong>无法算分</strong>！</p>`).appendTo($(".marked"));
-        var endTime = new Date(viewset[Doing].date),
-            startTime = new Date(viewset[Doing].date - (TimeLong - 1000) * viewset[Doing].TimeLong);
-        $("time:eq(0)").text(`${startTime.getFullYear()}-${(startTime.getMonth()+1).toString().padStart(2,'0')}-${startTime.getDate().toString().padStart(2,'0')} ${startTime.getHours().toString().padStart(2,'0')}:${startTime.getMinutes().toString().padStart(2,'0')}`);
-        $("time:eq(1)").text(`${endTime.getFullYear()}-${(endTime.getMonth()+1).toString().padStart(2,'0')}-${endTime.getDate().toString().padStart(2,'0')} ${endTime.getHours().toString().padStart(2,'0')}:${endTime.getMinutes().toString().padStart(2,'0')}`);
-        $(".info-rows > div:eq(5) > span:eq(1) > span").text(`${viewset[Doing].TimeLong.toFixed(2)}h`);
-        let nowtime = new Date();
-        let endtime = new Date(viewset[Doing].date);
-        nowtime = endtime.getTime() - nowtime.getTime();
-        let hour = Math.floor(nowtime / (1000*60*60) % 24),
-            minute = Math.floor(nowtime / (1000*60) % 60),
-            sec = Math.floor(nowtime / 1000 % 60);
-        $(".timerboard").html(`
-            <h2 data-v-796309f8="" class="lfe-h2" >
-                本比赛倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}
-            </h2>
-            <p data-v-796309f8="">请耐心作答。</p>
-        `);
-        let Finish = async () => {
-            $cp.remove();
-            clearInterval(Timer_board);
-            $(".timerboard").remove();
-            uindow._feInstance.$swalToastSuccess("比赛结束！");
-            let finalscore = 0;
-            for (let i = 0; i < viewset[Doing].problem.length; i++) {
-                let res = await lg_content(`/problem/${viewset[Doing].problem[i].pid}`);
-                if (res.currentData.problem.type == "P")
-                    finalscore += res.currentData.problem.score;
-                else
-                    finalscore += viewset[Doing].problem[i].fullScore * res.currentData.problem.accepted;
-            }
-            configs[Doing] += finalscore - Math.floor(38.75 * viewset[Doing].problem.length);
-            EditConfig("#ExChartData", configs, pageid2);
-            viewset[Doing] = null;
-            EditConfig("#ExViewData", viewset, pageid1);
-            uindow.location.reload();
-        }
-        $(".operation").empty();
-        $cp = $(`<button id="finish" type="button" class="lfe-form-sz-middle" style="border-color: rgb(221, 81, 76) !important; background-color: rgb(221, 81, 76) !important; display:inline-block; flex:none; outline:0; cursor:pointer; color:#fff; font-weight:inherit; line-height:1.5; text-align:center; vertical-align:middle; background:0 0; border-radius:3px; border:1px solid">AK 了？提前结束！</button>`);
-        $cp.hover(
-            function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
-            function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
-        $cp.prependTo(".operation");
-        $cp.click(Finish);
-        var Timer_board = setInterval (async () => {
+                } else
+                    if (Doing == "simulation_contest") {
+                        $("title").text(`模拟赛 - 洛谷 | 计算机科学教育新生态`);
+                        $(".header > h1").text("模拟赛");
+                        $(".marked").empty();
+                        $(".value.lfe-caption").text(`${viewset[Doing].problem.length}`);
+                        $(`
+                            <h2>模拟赛</h2>
+                            <p>模拟考试。</p>
+                        `).appendTo($(".marked"));
+                        $("li:eq(2)").remove();
+                    } else {
+                        $("title").text(`无比赛 - 洛谷 | 计算机科学教育新生态`);
+                        $(".header > h1").text("无比赛");
+                        $(".marked").empty();
+                        $(`
+                            <h2>无比赛</h2>
+                            <p>您现在并没有在做比赛。</p>
+                        `).appendTo($(".marked"));
+                        $(".value.lfe-caption").text("无");
+                        $("li:eq(2)").remove();
+                        $("li:eq(1)").remove();
+                        $("time").text("未来");
+                        return;
+                    }
+            $(`<p>比赛将结束时请回到此页面，否则<strong>无法算分</strong>！</p>`).appendTo($(".marked"));
+            var endTime = new Date(viewset[Doing].date),
+                startTime = new Date(viewset[Doing].date - (TimeLong - 1000) * viewset[Doing].TimeLong);
+            $("time:eq(0)").text(`${startTime.getFullYear()}-${(startTime.getMonth()+1).toString().padStart(2,'0')}-${startTime.getDate().toString().padStart(2,'0')} ${startTime.getHours().toString().padStart(2,'0')}:${startTime.getMinutes().toString().padStart(2,'0')}`);
+            $("time:eq(1)").text(`${endTime.getFullYear()}-${(endTime.getMonth()+1).toString().padStart(2,'0')}-${endTime.getDate().toString().padStart(2,'0')} ${endTime.getHours().toString().padStart(2,'0')}:${endTime.getMinutes().toString().padStart(2,'0')}`);
+            $(".info-rows > div:eq(5) > span:eq(1) > span").text(`${viewset[Doing].TimeLong.toFixed(2)}h`);
             let nowtime = new Date();
             let endtime = new Date(viewset[Doing].date);
             nowtime = endtime.getTime() - nowtime.getTime();
-            if (nowtime < 1000)
-            {
-                Finish();
-                return;
-            }
             let hour = Math.floor(nowtime / (1000*60*60) % 24),
                 minute = Math.floor(nowtime / (1000*60) % 60),
                 sec = Math.floor(nowtime / 1000 % 60);
-            $(`.timerboard > h2`).text(`本比赛倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
-        }, 1000);
-        if (uindow.location.href.match(/problems/gi)) {
-            $("div.row-wrap").empty();
-            for (let i = 0; i < viewset[Doing].problem.length; i++) {
-                $(`
-                    <div data-v-7178e78a="" data-v-24f898d2="" class="row">
-                        <div data-v-7178e78a="" data-v-24f898d2="" class="part">
-                            <span data-v-7178e78a="" data-v-24f898d2="" class="pid">
-                                ${viewset[Doing].problem[i].index}
-                            </span>
-                            <span data-v-7178e78a="" data-v-24f898d2="" class="score">
-                                ${viewset[Doing].problem[i].fullScore}
-                            </span>
-                            <div data-v-7178e78a="" data-v-24f898d2="" class="title">
-                                <a data-v-303bbf52="" data-v-7178e78a="" href="/problem/${viewset[Doing].problem[i].pid}" target="_blank" colorscheme="default" class="title color-default" data-v-24f898d2="">
-                                    ${viewset[Doing].problem[i].name}
-                                </a>
+            $(".timerboard").html(`
+                <h2 data-v-796309f8="" class="lfe-h2" >
+                    本比赛倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}
+                </h2>
+                <p data-v-796309f8="">请耐心作答。</p>
+            `);
+            let Finish = async () => {
+                $cp.remove();
+                clearInterval(Timer_board);
+                $(".timerboard").remove();
+                uindow._feInstance.$swalToastSuccess("比赛结束！");
+                let finalscore = 0;
+                for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                    let res = await lg_content(`/problem/${viewset[Doing].problem[i].pid}`);
+                    if (res.currentData.problem.type == "P")
+                        finalscore += res.currentData.problem.score;
+                    else
+                        finalscore += viewset[Doing].problem[i].fullScore * res.currentData.problem.accepted;
+                }
+                configs[Doing] += finalscore - Math.floor(38.75 * viewset[Doing].problem.length);
+                EditConfig("#ExChartData", configs, pageid2);
+                viewset[Doing] = null;
+                EditConfig("#ExViewData", viewset, pageid1);
+                uindow.location.reload();
+            }
+            $(".operation").empty();
+            $cp = $(`<button id="finish" type="button" class="lfe-form-sz-middle" style="border-color: rgb(221, 81, 76) !important; background-color: rgb(221, 81, 76) !important; display:inline-block; flex:none; outline:0; cursor:pointer; color:#fff; font-weight:inherit; line-height:1.5; text-align:center; vertical-align:middle; background:0 0; border-radius:3px; border:1px solid">AK 了？提前结束！</button>`);
+            $cp.hover(
+                function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
+                function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
+            $cp.prependTo(".operation");
+            $cp.click(Finish);
+            var Timer_board = setInterval (async () => {
+                let nowtime = new Date();
+                let endtime = new Date(viewset[Doing].date);
+                nowtime = endtime.getTime() - nowtime.getTime();
+                if (nowtime < 1000)
+                {
+                    Finish();
+                    return;
+                }
+                let hour = Math.floor(nowtime / (1000*60*60) % 24),
+                    minute = Math.floor(nowtime / (1000*60) % 60),
+                    sec = Math.floor(nowtime / 1000 % 60);
+                $(`.timerboard > h2`).text(`本比赛倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}`);
+            }, 1000);
+            if (uindow.location.href.match(/problems/gi)) {
+                $("div.row-wrap").empty();
+                for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                    $(`
+                        <div data-v-7178e78a="" data-v-24f898d2="" class="row">
+                            <div data-v-7178e78a="" data-v-24f898d2="" class="part">
+                                <span data-v-7178e78a="" data-v-24f898d2="" class="pid">
+                                    ${viewset[Doing].problem[i].index}
+                                </span>
+                                <span data-v-7178e78a="" data-v-24f898d2="" class="score">
+                                    ${viewset[Doing].problem[i].fullScore}
+                                </span>
+                                <div data-v-7178e78a="" data-v-24f898d2="" class="title">
+                                    <a data-v-303bbf52="" data-v-7178e78a="" href="/problem/${viewset[Doing].problem[i].pid}" target="_blank" colorscheme="default" class="title color-default" data-v-24f898d2="">
+                                        ${viewset[Doing].problem[i].name}
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `).appendTo($("div.row-wrap"));
+                    `).appendTo($("div.row-wrap"));
+                }
             }
-        }
-        if (uindow.location.href.match(/scoreboard/gi)) {
-            let finalscore = 0;
-            $("div.row-wrap > .row > .score").remove();
-            for (let i = 0; i < viewset[Doing].problem.length; i++) {
-                if (flagarr[i] == 1) continue;
-                flagarr[i] = 1;
-                let res = await lg_content(`/problem/${viewset[Doing].problem[i].pid}`);
-                let scocol, col = [30, 60, 80, 2147483647], nowsco;
-                if (res.currentData.problem.type == "P")
-                    nowsco = res.currentData.problem.score;
-                else
-                    nowsco = viewset[Doing].problem[i].fullScore * res.currentData.problem.accepted;
-                for (scocol = 0; col[scocol] <= nowsco; scocol++);
-                $(`
+            if (uindow.location.href.match(/scoreboard/gi)) {
+                let finalscore = 0;
+                $("div.row-wrap > .row > .score").remove();
+                for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                    if (flagarr[i] == 1) continue;
+                    flagarr[i] = 1;
+                    let res = await lg_content(`/problem/${viewset[Doing].problem[i].pid}`);
+                    let scocol, col = [30, 60, 80, 2147483647], nowsco;
+                    if (res.currentData.problem.type == "P")
+                        nowsco = res.currentData.problem.score;
+                    else
+                        nowsco = viewset[Doing].problem[i].fullScore * res.currentData.problem.accepted;
+                    for (scocol = 0; col[scocol] <= nowsco; scocol++);
+                    $(`
+                        <div data-v-0f607a24="" data-v-24f898d2="" class="score">
+                            <span data-v-0f607a24="" data-v-24f898d2="" class="score-${scocol}" style="font-weight: bold;">${nowsco}</span>
+                        </div>
+                    `).appendTo("div.row-wrap > .row");
+                    finalscore += nowsco;
+                }
+                if (flagarr[viewset[Doing].problem.length] != 1) {
+                    flagarr[viewset[Doing].problem.length] = 1;
+                    $("div.row-wrap > .row > .score:eq(0)").before($(`
                     <div data-v-0f607a24="" data-v-24f898d2="" class="score">
-                        <span data-v-0f607a24="" data-v-24f898d2="" class="score-${scocol}" style="font-weight: bold;">${nowsco}</span>
+                    <span data-v-0f607a24="" data-v-24f898d2="" style="font-weight: bold;">${finalscore}</span>
                     </div>
-                `).appendTo("div.row-wrap > .row");
-                finalscore += nowsco;
-            }
-            if (flagarr[viewset[Doing].problem.length] != 1) {
-                flagarr[viewset[Doing].problem.length] = 1;
-                $("div.row-wrap > .row > .score:eq(0)").before($(`
-                <div data-v-0f607a24="" data-v-24f898d2="" class="score">
-                <span data-v-0f607a24="" data-v-24f898d2="" style="font-weight: bold;">${finalscore}</span>
-                </div>
-                `))
-            }
-            $("div.row-wrap > .row > .user").empty();
-            $(`
-                <span data-v-6eed723a="" data-v-0f607a24="" class="wrapper" data-v-24f898d2="">
-                    <a data-v-303bbf52="" data-v-6eed723a="" href="/user/${uindow._feInjection.currentUser.uid}" target="_blank" colorscheme="none">
-                        <span data-v-6eed723a="" data-v-303bbf52="" class="user-${uindow._feInjection.currentUser.color.toLowerCase()}" style="font-weight: bold;">${uindow._feInjection.currentUser.name}</span>
-                    </a>
-                </span>
-            `).appendTo("div.row-wrap > .row > .user");
-            $(".header-wrap > .header > .score").remove();
-            $(`
-                <div data-v-0f607a24="" sortparams="[object Object]" class="score" data-v-24f898d2="">
-                    <span class="lfe-caption">总分
+                    `))
+                }
+                $("div.row-wrap > .row > .user").empty();
+                $(`
+                    <span data-v-6eed723a="" data-v-0f607a24="" class="wrapper" data-v-24f898d2="">
+                        <a data-v-303bbf52="" data-v-6eed723a="" href="/user/${uindow._feInjection.currentUser.uid}" target="_blank" colorscheme="none">
+                            <span data-v-6eed723a="" data-v-303bbf52="" class="user-${uindow._feInjection.currentUser.color.toLowerCase()}" style="font-weight: bold;">${uindow._feInjection.currentUser.name}</span>
+                        </a>
                     </span>
-                </div>
-            `).appendTo(".header-wrap > .header");
-            for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                `).appendTo("div.row-wrap > .row > .user");
+                $(".header-wrap > .header > .score").remove();
                 $(`
                     <div data-v-0f607a24="" sortparams="[object Object]" class="score" data-v-24f898d2="">
-                        <span class="lfe-caption">
-                            <span data-v-0f607a24="" data-original-title="null" class=" has-tooltip" style="width: 100%;">${viewset[Doing].problem[i].index}</span>
+                        <span class="lfe-caption">总分
                         </span>
                     </div>
                 `).appendTo(".header-wrap > .header");
+                for (let i = 0; i < viewset[Doing].problem.length; i++) {
+                    $(`
+                        <div data-v-0f607a24="" sortparams="[object Object]" class="score" data-v-24f898d2="">
+                            <span class="lfe-caption">
+                                <span data-v-0f607a24="" data-original-title="null" class=" has-tooltip" style="width: 100%;">${viewset[Doing].problem[i].index}</span>
+                            </span>
+                        </div>
+                    `).appendTo(".header-wrap > .header");
+                }
             }
         }
     }
