@@ -1010,7 +1010,7 @@ mod.reg("poem-task", "古诗词和每日任务", "@/", {
         for (let i = 0; i < msto.total; i++)
         {
             $(`<div> ${msto.tasklist[i]}</div>`).appendTo("#task-list")
-            let $bt = $(`<i class="am-icon-minus remove-task" data="${i}"></i>`);
+            let $bt = $(`<i class="am-icon-minus-square-o remove-task" data="${i}"></i>`);
             $bt.prependTo(`#task-list > div:eq(${i})`);
             $bt.click(() => {
                 var data = parseInt($bt.attr("data"));
