@@ -963,7 +963,7 @@ mod.reg("poem-task", "古诗词和每日任务", "@/", {
     tasklist: {
         ty: "tuple",
         lvs: [
-            { ty: "string", dft: false, strict: true, repeat: 50 }
+            { ty: "string", dft: false, strict: true, repeat: 51 }
         ],
         priv: true
     }
@@ -1048,14 +1048,14 @@ mod.reg("rand-footprint", "随机足迹", "@/", {
     Usersname: {
         ty: "tuple",
         lvs: [
-            { ty: "string", dft: false, strict: true, repeat: 50 }
+            { ty: "string", dft: false, strict: true, repeat: 51 }
         ],
         priv: true
     },
     Usn: {
         ty: "tuple",
         lvs: [
-            { ty: "string", dft: false, strict: true, repeat: 50 }
+            { ty: "string", dft: false, strict: true, repeat: 51 }
         ],
         priv: true
     }
