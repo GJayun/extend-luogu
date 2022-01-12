@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name           Jayun's ExLuogu
+// @name           extend-luogu
 // @namespace      http://tampermonkey.net/
-// @version        3.0.0
+// @version        3.2.0
 //
 // @match          https://*.luogu.com.cn/*
 // @match          https://*.luogu.org/*
@@ -38,11 +38,21 @@
 
 // ==Update==
 
-const update_log = `*M user-problem-color
- : 调整黑题颜色
-*M update-log
-^< eslint
-*@ commit-std`
+const update_log = `xM original-difficulty
+ : 效果太差，以后再补
+-- exlg-alert
+ : 自行研发了一个，不用看amazeui的脸色了
+*M benben-emoticon, emoticon
+ : 美化了一些些
+*M discussion-save, rand-problem-ex, benben
+ : 优化小细节。
+-M submission-color
+ : 它复活啦，哈哈哈哈
+-M back-to-contest
+ : 舒服多了，话说这次工作量真的大
+^M user-problem-color
+ : 现在终于没有在不做题的人那里报错的bug了
+`
 
 // ==/Update==
 
@@ -116,12 +126,11 @@ const lg_content = url => new Promise((res, rej) =>
         res(data)
     })
 )
-
-const lg_alert = uindow.show_alert
-    ? (msg, title = "exlg 提醒您") => uindow.show_alert(title, msg)
-    : (msg, title = "exlg 提醒您") => {
-        if (! $(document.body).hasClass("lg-alert-built")) {
-            $(`<div class="am-modal am-modal-alert am-modal-out" tabindex="-1" id="exlg-alert" style="display: none; margin-top: -40px;">
+/*
+const exlg_alert_onaction = uindow.show_alert ? () => true : () => {
+    if (! ` ${document.body.className.split(' ')} `.includes("lg-alert-built")) {
+        $(document.head).append($(`<link rel="stylesheet" href="https://cdn.luogu.com.cn/css/amazeui.min.css">`))
+        $(`<div class="am-modal am-modal-alert am-modal-out" tabindex="-1" id="exlg-alert" style="display: none; margin-top: -40px;">
             <div class="am-modal-dialog">
                 <div class="am-modal-hd" id="exlg-alert-title"></div>
                 <div class="am-modal-bd" id="exlg-alert-message"></div>
@@ -129,12 +138,16 @@ const lg_alert = uindow.show_alert
                     <span class="am-modal-btn">确定</span>
                 </div>
             </div></div>`).appendTo($(document.body))
-            $(document.body).addClass("lg-alert-built")
-        }
-        $("#exlg-alert-title").html(title)
-        $("#exlg-alert-message").html(msg)
-        $("#exlg-alert").modal("open")
+        $(document.body).addClass("lg-alert-built")
+        return false
+        // Note: 阅读 Amaze UI 源码得出搞法
     }
+    return true
+}
+*/
+const lg_alert = uindow.show_alert
+    ? (msg, title = "exlg 提醒您") => uindow.show_alert(title, msg)
+    : (msg, title = "exlg 提醒您") => uindow.alert(title + "\n" + msg)
 
 /*
 // Note: not implemented yet
@@ -163,6 +176,7 @@ const lg_confirm = (deny, accept, title, msg, callback) => {
 }
 */
 
+
 const springboard = (param, styl) => {
     const q = new URLSearchParams(); for (let k in param) q.set(k, param[k])
     const $sb = $(`
@@ -181,6 +195,132 @@ const judge_problem = text => [
     /^U[1-9][0-9]{0,}$/i,
     /^T[[1-9][0-9]{0,}$/i
 ].some(re => re.test(text))
+
+const register_badge = async () => {
+    const parse_badge = (href, func_quit) => {
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: href,
+            onload: (res) => {
+                let fres = -1
+                const e = res.response
+                const _operations = [
+                    {
+                        errorcode: 0,
+                        message: `"Succeed in creating a new badge!"`,
+                        ontitle: "[exlg] 成功创建 badge",
+                        onlog: "Successfully created a badge!"
+                    },
+                    {
+                        errorcode: 1,
+                        message: `"Wrong active code!"`,
+                        ontitle: "无效激活码",
+                        onlog: "Illegal Active Code"
+                    },
+                    {
+                        errorcode: 2,
+                        message: `"Sorry, but the active code has been used!"`,
+                        ontitle: "激活码已被使用",
+                        onlog: "Expired Active Code"
+                    },
+                    {
+                        errorcode: 3,
+                        message: `"Something went wrong!"`,
+                        ontitle: "非法的 badge 内容",
+                        onlog: "Illegal Badge Text"
+                    },
+                    {
+                        errorcode: -1,
+                        message: `Fuck CCF up`,
+                        ontitle: "未知错误",
+                        onlog: "注册 exlg-badge 时出现未知错误, 请联系开发人员"
+                    },
+                ]
+                _operations.forEach(f => {
+                    if(fres !== -1) return
+                    console.log(e === f.message, f.errorcode === -1, f)
+                    if (e === f.message || f.errorcode === -1) {
+                        fres = f.errorcode
+                        $('#exlg-dialog-title').html(f.errorcode ? `[Error] ${f.ontitle}` : f.ontitle)
+                        log(f.errorcode ? `Illegal Operation in registering badge: ${f.onlog}(#${f.errorcode})` : f.onlog)
+                        if(fres === -1 || ! fres) {
+                            func_quit()
+                            setTimeout(() => exlg_dialog_board.show_exlg_alert("badge 注册成功!", "exlg 提醒您"), 400)
+                            return
+                        }
+                    }
+                })
+            }
+        })
+    }
+    const title_text = "exlg badge 注册器 ver.5.0" //Note: 说起来这已经是第五代了
+    exlg_dialog_board.show_exlg_alert(`<div class="exlg-update-log-text exlg-unselectable exlg-badge-page" style="font-family: Consolas;">
+    <div style="text-align: center">
+        <div style="display:inline-block;text-align: left;padding-top: 10px;">
+            <div style="margin: 5px;"><span style="height: 1.5em;float: left;padding: .1em;width: 5em;">用户uid</span><input exlg-badge-register type="text" style="padding: .1em;" class="am-form-field exlg-badge-input" placeholder="填写用户名或uid" name="username"></div>
+            <div style="margin: 5px;"><span style="height: 1.5em;float: left;padding: .1em;width: 5em;">激活码</span><input exlg-badge-register type="text" style="padding: .1em;" class="am-form-field exlg-badge-input" placeholder="您获取的激活码" name="username"></div>
+            <div style="margin: 5px;margin-bottom: 20px;"><span style="height: 1.5em;float: left;padding: .1em;width: 5em;">badge</span><input exlg-badge-register type="text" style="margin-bottom: 10px;padding: .1em;" class="am-form-field exlg-badge-input" placeholder="您想要的badge" name="username"></div>
+        </div>
+        <br>
+        <small>Powered by <s>Amaze UI</s> 自行研发，去他妈的 Amaze UI</small>
+    </div>
+</div>
+    `, title_text, (func_quit) => {
+        const $board = $("#exlg-container"), $input =$board.find("input"), $title = $board.find('#exlg-dialog-title')
+        if (_feInjection && _feInjection.currentUser && _feInjection.currentUser.uid && ! $input[0].value)
+            $input[0].value = _feInjection.currentUser.uid
+        if (! ($input[0].value && $input[1].value && $input[2].value)) {
+            $title.html("[Err] 请检查信息是否填写完整")
+            setTimeout(() => $title.html(title_text), 1500)
+            return
+        }
+        $.get("/api/user/search?keyword=" + $input[0].value, res => {
+            if (! res.users[0]) {
+                $title.html("[Err] 无法找到指定用户")
+                setTimeout(() => $title.html(title_text), 1500)
+            }
+            else {
+                $input[0].value = res.users[0].uid
+                const badge_href = `https://service-cmrlfv7t-1305163805.sh.apigw.tencentcs.com/release/${$input[1].value}/${$input[0].value}/${$input[2].value}/`
+                parse_badge(badge_href, func_quit)
+            }
+        })
+    }, false)/*
+    const $board = $("#exlg-alert, #lg-alert")
+    const $btn = $board.find(".am-modal-btn")
+    // Note: 重构一次，Date = 20211127 Time = 21:10
+    const $cancel = $btn.clone().text("取消")
+    const $submit = $btn.clone().text("确定").off("click")
+    const $title = $("#exlg-alert-title, #lg-alert-title").on("click", () => $title.html(title_text)).addClass("exlg-unselectable")
+    const $dimmer = $(".am-dimmer")
+    console.log($board, $cancel, $submit, $dimmer, $title, $btn)
+
+    const clear_foot = () => setTimeout(() => {
+        console.log("tried to clear foot!")
+        $cancel.remove()
+        $submit.remove()
+        $title.off("click").removeClass("exlg-unselectable")
+        $dimmer.off("click")
+        $btn.show()
+    }, 200)
+    if (uindow.show_alert)
+        $(".am-dimmer").on("click", () => {
+            clear_foot()
+        })
+    else
+        $(".am-dimmer").off("click").on("click", () => {
+            console.log("get dimmered.", $btn)
+            $btn.click()
+            clear_foot()
+        })
+    $btn.css("cssText", "display: none!important;")
+    $cancel.on("click", () => {
+        $btn.click()
+        clear_foot()
+    })
+        .appendTo($btn.parent())
+    $submit.on("click", ).appendTo($btn.parent())*/
+}
 
 // ==/Utilities==
 
@@ -288,12 +428,25 @@ const mod = {
     reg_board: (name, info, data, func, styl) => mod.reg(
         name, info, "@/", data,
         arg => {
-            const icon_b = `<center><span class="katex"><span class="katex-html" aria-hidden="true"><span class="base"><span class="mord text sizing reset-size6 size11"><span class="mord texttt">EXLG</span></span></span></span></span></center>`
+            const icon_b = `
+                <svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 0 136.14 30.56">
+                    <g transform="translate(1.755, 0)" fill="#00a0d8">
+                        <g>
+                            <path d="M5.02-33.80L34.56-33.80L34.07-28.62L16.96-28.62L15.93-21.92L31.97-21.92L31.48-16.74L14.85-16.74L13.82-8.42L31.97-8.42L31.48-3.24L2.43-3.24L6.59-31.75L5.02-33.80Z" transform="translate(-4.14, 33.9)"></path>
+                            <path d="M7.34-32.29L5.78-33.80L16.63-33.80L21.33-25.00L27.54-32.78L26.51-33.80L38.93-33.80L25.49-18.79L34.78-3.24L24.41-3.24L19.76-12.58L11.99-3.24L1.62-3.24L15.12-18.79L7.34-32.29Z" transform="translate(27.23, 33.9)"></path>
+                            <path d="M4.00-33.80L16.42-33.80L12.80-8.42L32.99-8.42L32.51-3.24L5.56-3.24Q4.00-3.24 3.21-4.27Q2.43-5.29 2.43-6.86L2.43-6.86L5.56-31.75L4.00-33.80Z" transform="translate(63.8, 33.9)"></path>
+                            <path d="M38.83-33.80L37.80-25.00L27.43-25.00L27.92-28.62L15.50-28.62L12.91-8.42L25.33-8.42L25.87-14.63L22.73-19.82L36.72-19.82L34.67-3.24L5.62-3.24Q4.86-3.24 4.21-3.51Q3.56-3.78 3.10-4.27Q2.65-4.75 2.48-5.43Q2.32-6.10 2.54-6.86L2.54-6.86L6.16-33.80L38.83-33.80Z" transform="translate(95.6, 33.9)"></path>
+                        </g>
+                    </g>
+            </svg>
+            `
             let $board = $("#exlg-board")
-            if (! $board.length) $board = $(`
-                <div class="lg-article" id="exlg-board" exlg="exlg"></div>
-            `)
-                .prependTo(".lg-right.am-u-md-4")
+            if (! $board.length) 
+                $board = $(`
+                    <div class="lg-article" id="exlg-board" exlg="exlg"><h2>${icon_b} &nbsp;&nbsp;${GM_info.script.version}</h2></div>
+                `)
+                    .prependTo(".lg-right.am-u-md-4"), 
+                $board[0].firstChild.style["font-size"]="1em"
             func({ ...arg, $board: $(`<div></div>`).appendTo($board) })
         }, styl
     ),
@@ -431,31 +584,160 @@ mod.reg_hook_new("dash-bridge", "控制桥", "@/.*", {
     source: {
         ty: "enum", vals: [ "tcs", "debug", "gh_index", "gh_bundle" ], dft: "tcs",
         info: [ "The website to open when clicking the exlg button", "点击 exlg 按钮时打开的网页" ]
+    },
+    enable_rclick: {
+        ty: "boolean", dft: true,
+        info:[ "Use Right Click to change source", "右键点击按钮换源" ]
+    },
+    latest_ignore: { // 最新忽略版本更新提示的版本
+        ty: "string", dft: "0.0.0"
     }
 }, ({ msto, args }) => {
-    const source = msto.source
-    $(`<div id="exlg-dash" exlg="exlg"><svg data-v-78704ac9="" data-v-303bbf52="" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="user-cog" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" class="svg-inline--fa fa-cog fa-w-20"><path data-v-78704ac9="" data-v-303bbf52="" fill="currentColor" d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z" class=""></path></svg> 设置</div>|
-     </>`)
+    const create_window = ! args.parent().hasClass("mobile-nav-container")
+    // console.log(create_window)
+    const $spn = $(`<span id="exlg-dash-window" class="exlg-window" style="display: none;width: 300px;"></span>`).css("left", "1240px")
+    const $btn = $(`<div id="exlg-dash" exlg="exlg"><svg data-v-78704ac9="" data-v-303bbf52="" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="user-cog" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" class="svg-inline--fa fa-cog fa-w-20"><path data-v-78704ac9="" data-v-303bbf52="" fill="currentColor" d="M487.4 315.7l-42.6-24.6c4.3-23.2 4.3-47 0-70.2l42.6-24.6c4.9-2.8 7.1-8.6 5.5-14-11.1-35.6-30-67.8-54.7-94.6-3.8-4.1-10-5.1-14.8-2.3L380.8 110c-17.9-15.4-38.5-27.3-60.8-35.1V25.8c0-5.6-3.9-10.5-9.4-11.7-36.7-8.2-74.3-7.8-109.2 0-5.5 1.2-9.4 6.1-9.4 11.7V75c-22.2 7.9-42.8 19.8-60.8 35.1L88.7 85.5c-4.9-2.8-11-1.9-14.8 2.3-24.7 26.7-43.6 58.9-54.7 94.6-1.7 5.4.6 11.2 5.5 14L67.3 221c-4.3 23.2-4.3 47 0 70.2l-42.6 24.6c-4.9 2.8-7.1 8.6-5.5 14 11.1 35.6 30 67.8 54.7 94.6 3.8 4.1 10 5.1 14.8 2.3l42.6-24.6c17.9 15.4 38.5 27.3 60.8 35.1v49.2c0 5.6 3.9 10.5 9.4 11.7 36.7 8.2 74.3 7.8 109.2 0 5.5-1.2 9.4-6.1 9.4-11.7v-49.2c22.2-7.9 42.8-19.8 60.8-35.1l42.6 24.6c4.9 2.8 11 1.9 14.8-2.3 24.7-26.7 43.6-58.9 54.7-94.6 1.5-5.5-.7-11.3-5.6-14.1zM256 336c-44.1 0-80-35.9-80-80s35.9-80 80-80 80 35.9 80 80-35.9 80-80 80z" class=""></path></svg> 设置</div>|
+    </></div>`)
         .prependTo(args)
-        .on("click", () => uindow.exlg.dash = uindow.open({
-            tcs: "https://service-otgstbe5-1305163805.sh.apigw.tencentcs.com/release/exlg-setting",
-            debug: "localhost:1634/dashboard",
-            gh_index: "https://extend-luogu.github.io/exlg-setting/index.html",
-            gh_bundle: "https://extend-luogu.github.io/exlg-setting/bundle.html",
-        }[source]))
+        .css("margin-top", args.hasClass("nav-container") ? "5px" : "0px")
+    const _jump_settings = () => uindow.exlg.dash = uindow.open({
+        tcs: "https://service-otgstbe5-1305163805.sh.apigw.tencentcs.com/release/exlg-setting",
+        debug: "localhost:1634/dashboard",
+        gh_index: "https://extend-luogu.github.io/exlg-setting/index.html",
+        gh_bundle: "https://extend-luogu.github.io/exlg-setting/bundle.html",
+    }[msto.source])
+    if (msto.enable_rclick)
+        $btn.bind("contextmenu", () => false)
+            .on("mousedown", (e) => {
+                if (! e.button)
+                    _jump_settings()
+                else if (e.button === 2) {
+                    msto.source = {
+                        tcs: "debug",
+                        debug: "gh_index",
+                        gh_index: "gh_bundle",
+                        gh_bundle: "tcs",
+                    }[msto.source]
+                }
+            })
+    else $btn.on("click", _jump_settings)
+
+    if (create_window) {
+        $spn.prependTo(args)
+        let mondsh = false, monbrd = false
+        $btn.on("mouseenter", () => {
+            mondsh = true, $spn.show()
+        }).on("mouseleave", () => {
+            mondsh = false
+            if (!monbrd) {
+                setTimeout(() => {
+                    if (!monbrd) $spn.hide()
+                }, 200)
+            }
+        })
+        $spn.on("mouseenter", () => { monbrd = true })
+            .on("mouseleave", () => {
+                monbrd = false
+                if (! mondsh) $spn.hide()
+            })
+  
+        $(`<h2 align="center" style="margin-top: 5px;margin-bottom: 10px;"><svg xmlns="http://www.w3.org/2000/svg" height="30" viewBox="0 0 136.14 30.56">
+        <g transform="translate(1.755, 0)" fill="#00a0d8">
+            <g>
+                <path d="M5.02-33.80L34.56-33.80L34.07-28.62L16.96-28.62L15.93-21.92L31.97-21.92L31.48-16.74L14.85-16.74L13.82-8.42L31.97-8.42L31.48-3.24L2.43-3.24L6.59-31.75L5.02-33.80Z" transform="translate(-4.14, 33.9)"></path>
+                <path d="M7.34-32.29L5.78-33.80L16.63-33.80L21.33-25.00L27.54-32.78L26.51-33.80L38.93-33.80L25.49-18.79L34.78-3.24L24.41-3.24L19.76-12.58L11.99-3.24L1.62-3.24L15.12-18.79L7.34-32.29Z" transform="translate(27.23, 33.9)"></path>
+                <path d="M4.00-33.80L16.42-33.80L12.80-8.42L32.99-8.42L32.51-3.24L5.56-3.24Q4.00-3.24 3.21-4.27Q2.43-5.29 2.43-6.86L2.43-6.86L5.56-31.75L4.00-33.80Z" transform="translate(63.8, 33.9)"></path>
+                <path d="M38.83-33.80L37.80-25.00L27.43-25.00L27.92-28.62L15.50-28.62L12.91-8.42L25.33-8.42L25.87-14.63L22.73-19.82L36.72-19.82L34.67-3.24L5.62-3.24Q4.86-3.24 4.21-3.51Q3.56-3.78 3.10-4.27Q2.65-4.75 2.48-5.43Q2.32-6.10 2.54-6.86L2.54-6.86L6.16-33.80L38.83-33.80Z" transform="translate(95.6, 33.9)"></path>
+            </g>
+        </g>
+</svg></h2>`).appendTo($spn)
+        const $bdiv = $(`<div id="exlg-windiv"></div>`).appendTo($spn)
+
+        const _list = [
+            { tag: "vers", title: "vers", buttons: [ ] },
+            { tag: "source", title: "Source", buttons: [
+                { col: "#66ccff", html: "JsDelivr", onclick: () => uindow.location.href = "https://cdn.jsdelivr.net/gh/extend-luogu/extend-luogu/extend-luogu.user.js" },
+                { col: "#66ccff", html: "Raw", onclick: () => uindow.location.href = "https://github.com/extend-luogu/extend-luogu/raw/main/extend-luogu.user.js" },
+                { col: "#66ccff", html: "FastGit", onclick: () => uindow.location.href = "https://hub.fastgit.org/extend-luogu/extend-luogu/raw/main/extend-luogu.user.js" }
+            ] },
+            { tag: "link", title: "Link", buttons: [
+                { col: "#66ccff", html: "Web", onclick: () => uindow.location.href = "https://exlg.cc" },
+                { col: "#666", html: `<a style="height: 8px;width: 8px;"><svg aria-hidden="true" height="12" viewBox="0 0 16 16" version="1.1" width="12" data-view-component="true" class="octicon octicon-mark-github">
+                <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg></a>Github`, onclick: () => uindow.location.href = "https://github.com/extend-luogu/extend-luogu" },
+                { col: "#66ccff", html: "aifadian", onclick: () => uindow.location.href = "https://afdian.net/@extend-luogu" }
+            ] },
+            { tag: "help", title: "Help", buttons: [
+                { col: "#66ccff", html: "fx", onclick: () => uindow.location.href = "https://www.luogu.com.cn/blog/100250/extend-luogu-si-yong-zhi-na" },
+                { col: "#66ccff", html: "int128", onclick: () => uindow.location.href = "https://www.luogu.com.cn/blog/NaCl7/extend-luogu-usage" },
+                { col: "#66ccff", html: "用户协议", onclick: () => uindow.location.href = "https://www.luogu.com.cn/paste/3f7anw16" }
+            ] },
+            { tag: "lhyakioi", title: "badge", buttons: [ ] }
+        ]
+        _list.forEach((e, _i) => {
+            const $div = $(`<div id="${ e.tag }-div"><span class="exlg-windiv-left-tag">${ e.title }</span></div>`).appendTo($bdiv),
+                $span = $("<span></span>").appendTo($div)
+            e.buttons.forEach((btn, _i) => {
+                $(`<span class="exlg-windiv-btnspan"></span>`).append($(`<button class="exlg-windiv-btn" style="background-color: ${ btn.col };border-color: ${ btn.col };">${ btn.html }</button>`).on("click", btn.onclick)).appendTo($span)
+            })
+            if (e.title === "vers") {
+                $span.append($(`<span id="version-text" style="min-width: 60%;"><span>${ GM_info.script.version }</span><span id="vers-comp-operator" style="margin-left: 10px;"></span><span id="latest-version" style="margin-left: 10px;"></span><span id="annoyingthings"></span></span>"`))
+                const $check_btn = $(`<button class="exlg-windiv-btn" style="background-color: red;border-color: red;float: right;margin: 0 10px 0 0;">刷新</button>`),
+                    $operator = $span.find("#vers-comp-operator"), $latest = $span.find("#latest-version"), $fuckingdots = $span.find("#annoyingthings")
+                const _check = () => {
+                    $("#exlg-update").remove()
+                    springboard({ type: "update" }).appendTo($("body")).hide()
+                    uindow.addEventListener("message", e => {
+                        if (e.data[0] !== "update") return
+                        e.data.shift()
+
+                        const
+                            latest = e.data[0],
+                            version = GM_info.script.version,
+                            op = version_cmp(version, latest)
+
+                        const l = `Comparing version: ${version} ${op} ${latest}`
+                        log(l)
+
+                        $operator.html(op).css("color", { "<<": "#fe4c61", "==": "#52c41a", ">>": "#3498db" }[op])
+                        $latest.html(latest)
+                        $fuckingdots.html({ "<<": `<i class="exlg-icon exlg-info" name="有新版本"></i>`, ">>": `<i class="exlg-icon exlg-info" name="内测中！"></i>`}[op] || "").children().css("cssText", "position: absolute;display: inline-block;")
+                        if (op === "<<" && version_cmp(msto.latest_ignore, latest) === "<<") {
+                            const $ignore_vers = $(`<span style="color: red;margin-left: 30px;"><svg class="icon" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" width="24" height="24" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5446"><path d="M512 128c-211.7 0-384 172.3-384 384s172.3 384 384 384 384-172.3 384-384-172.3-384-384-384z m0 717.4c-183.8 0-333.4-149.6-333.4-333.4S328.2 178.6 512 178.6 845.4 328.2 845.4 512 695.8 845.4 512 845.4zM651.2 372.8c-9.9-9.9-25.9-9.9-35.8 0L512 476.2 408.6 372.8c-9.9-9.9-25.9-9.9-35.8 0-9.9 9.9-9.9 25.9 0 35.8L476.2 512 372.8 615.4c-9.9 9.9-9.9 25.9 0 35.8 4.9 4.9 11.4 7.4 17.9 7.4s13-2.5 17.9-7.4L512 547.8l103.4 103.4c4.9 4.9 11.4 7.4 17.9 7.4s13-2.5 17.9-7.4c9.9-9.9 9.9-25.9 0-35.8L547.8 512l103.4-103.4c9.9-9.9 9.9-25.9 0-35.8z" p-id="5447"></path></svg></span>`).on("click", () => {
+                                msto.latest_ignore = latest
+                                $ignore_vers.hide()
+                            }).appendTo($fuckingdots)
+                        }
+                        if (op === "==") msto.latest_ignore = GM_info.script.version
+
+                        if (uindow.novogui) uindow.novogui.msg(l)
+                    })
+                }
+                $check_btn.on("click", _check).appendTo($span)
+                //Note: TODO: 最后放一个按钮查找，加个最新版本忽略机制，每次忽略之后对于小于等于那个版本的都不管
+                //Note: 如果不是最新版本，那么加2个按钮(弹窗通知，忽略，最后一个是查找)
+                //Note: 版本老了红色，版本对了绿色，版本新了蓝色（指测试版
+                //Note: 新版显示提示。
+                //Hack: 已经做完。
+            }
+            if (e.title === "badge") {
+                $(`<input type="text" disabled="disabled" style="width: 60%;" />`).appendTo($span)
+                $(`<button id="exlg-badge-btn" style="background-color: #ccc;border-color: #666;" class="exlg-windiv-btn" disabled="disabled">提交</button>`).appendTo($span)
+            }
+        })
+        
+
+    }
 }, (e) => {
     const $tmp = $(e.target).find(".user-nav > nav > span > div > div > footer")
     if ($tmp.length) return { result: ($tmp.length), args: ($tmp[0].tagName === "DIV" ? $($tmp[0].firstChild) : $tmp) } // Note: 直接用三目运算符不用 if 会触发 undefined 的 tagName 不知道为什么
-    else return { result: 0 }
+    else return { result: 0 } // Note: 上一行的 div 判断是用来防止变成两行的
 }, () => $("nav.user-nav > span > div > div > footer, div.user-nav > nav > span > div > div > footer"), `
     /* dash */
     #exlg-dash {
         margin-right: 5px;
         position: relative;
         display: inline-block;
-        padding: 1px 1px 3px;
-        color: #6c757d;
-        border-radius: 6px;
         cursor: pointer;
     }
     #exlg-dash > .exlg-warn {
@@ -562,23 +844,51 @@ mod.reg_hook_new("dash-bridge", "控制桥", "@/.*", {
     .exlg-difficulty-color.color-6 { color: rgb(157, 61, 207)!important; }
     .exlg-difficulty-color.color-7 { color: rgb(14, 29, 105)!important; }
 
-    button { margin-bottom: 3px !important; }
+    .exlg-window {
+        position: fixed;
+        top: 265px;
+        left: 0px;
+        z-index: 65536;
+        display: none;
+        width: 250px;
+        height: 300px;
+        padding: 5px;
+        background: white;
+        color: black;
+        border-radius: 7px;
+        box-shadow: rgb(187 227 255) 0px 0px 7px;
+    }
 
-    .user-brown { color: #996600 !important; }
-    .user-gray { color: #bbb !important; }
-    .user-blue { color: #0e90d2 !important; }
-    .user-green { color: #5eb95e !important; }
-    .user-orange { color: #e67e22 !important; }
-    .user-red { color: #e74c3c !important; }
-    .user-purple { color: #8e44ad !important; }
-
-    .score-0 { color: rgb(231, 76, 60); }
-    .score-1 { color: rgb(243, 156, 17); }
-    .score-2 { color: rgb(250, 219, 20); }
-    .score-3 { color: rgb(82, 196, 26); }
+    .exlg-windiv-left-tag {
+        border-right: 1px solid #eee;
+        height: 2em;
+        width: 18%;
+        margin-right: 5px;
+        display: inline-block;
+    }
+    .exlg-windiv-btn {
+        
+        font-size: 0.9em;
+        /*padding: 0.313em 1em;*/
+        display: inline-block;
+        flex: none;
+        outline: 0;
+        cursor: pointer;
+        color: #fff;
+        font-weight: inherit;
+        line-height: 1.5;
+        text-align: center;
+        vertical-align: middle;
+        background: 0 0;
+        border-radius: 5px;
+        border: 1px solid;
+        margin: 5px 5px;
+        
+    }
 `)
 
 mod.reg_chore("update", "检查更新", "1D", mod.path_dash_board, null, () => {
+    $("#exlg-update").remove()
     springboard({ type: "update" }).appendTo($("body")).hide()
     uindow.addEventListener("message", e => {
         if (e.data[0] !== "update") return
@@ -592,11 +902,202 @@ mod.reg_chore("update", "检查更新", "1D", mod.path_dash_board, null, () => {
         const l = `Comparing version: ${version} ${op} ${latest}`
         log(l)
 
-        uindow.novogui.msg(l)
+        if (uindow.novogui) uindow.novogui.msg(l)
     })
 })
 
 // TODO
+mod.reg("exlg-dialog-board", "exlg 公告板", "@/.*", {
+    animation_speed: {
+        ty: "enum", dft: ".4s", vals: [ "0s", ".2s", ".25s", ".4s" ],
+        info: [ "Speed of Board Animation", "启动消失动画速度" ]
+    },
+    confirm_position: {
+        ty: "enum", dft: "right", vals: [ "left", "right" ],
+        info: [ "Position of Confirm Button", "确定按钮相对位置" ]
+    }
+}, ({ msto }) => {
+    const $wrapper = $(`<div class="exlg-dialog-wrapper" id="exlg-wrapper" style="display: none;">
+    <div class="exlg-dialog-container container-hide" id="exlg-container" style="${msto.animation_speed === "0s" ? "" : `transition: all ${ msto.animation_speed };` }">
+     <div class="exlg-dialog-header">
+      <span><strong id="exlg-dialog-title">我做东方鬼畜音mad，好吗</strong></span>
+      <div id="header-right" onclick="" style="opacity: 0.5;"><svg class="icon" style="vertical-align: middle;fill: currentColor;overflow: hidden;" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5446"><path d="M512 128c-211.7 0-384 172.3-384 384s172.3 384 384 384 384-172.3 384-384-172.3-384-384-384z m0 717.4c-183.8 0-333.4-149.6-333.4-333.4S328.2 178.6 512 178.6 845.4 328.2 845.4 512 695.8 845.4 512 845.4zM651.2 372.8c-9.9-9.9-25.9-9.9-35.8 0L512 476.2 408.6 372.8c-9.9-9.9-25.9-9.9-35.8 0-9.9 9.9-9.9 25.9 0 35.8L476.2 512 372.8 615.4c-9.9 9.9-9.9 25.9 0 35.8 4.9 4.9 11.4 7.4 17.9 7.4s13-2.5 17.9-7.4L512 547.8l103.4 103.4c4.9 4.9 11.4 7.4 17.9 7.4s13-2.5 17.9-7.4c9.9-9.9 9.9-25.9 0-35.8L547.8 512l103.4-103.4c9.9-9.9 9.9-25.9 0-35.8z" p-id="5447"></path></svg></div>
+     </div>
+     <div class="exlg-dialog-body">
+         <div id="exlg-dialog-content">
+ 
+         </div>
+     </div>
+    </div>
+   </div>`).appendTo($(document.body))
+    const wait_time = {"0s": 0, ".2s": 100, ".25s": 250, ".4s": 400 }[msto.animation_speed] 
+    const wrapper = $wrapper[0], container = wrapper.firstElementChild,
+        header = container.firstElementChild.firstElementChild.firstElementChild, content = container.lastElementChild.firstElementChild,
+        close_btn = container.firstElementChild.lastElementChild
+    const footer = document.createElement("div")
+    footer.classList.add("exlg-dialog-footer")
+    container.appendChild(footer)
+    const btn_accept = document.createElement("button"), btn_cancel = document.createElement("button")
+    // btn_accept.classList.add("exlg-dialog-btn-confirm")
+    btn_accept.innerHTML = "确定"
+    btn_cancel.innerHTML = "取消"
+    btn_accept.classList.add("exlg-dialog-btn")
+    btn_cancel.classList.add("exlg-dialog-btn")
+    if (msto.confirm_position === "left")footer.appendChild(btn_cancel), footer.appendChild(btn_accept)
+    else footer.appendChild(btn_accept), footer.appendChild(btn_cancel)
+    uindow.exlg_dialog_board = {}
+    uindow.exlg_dialog_board._ac_func = function () {}
+    uindow.exlg_dialog_board.show_dialog = function() {
+        wrapper.style.display="flex"
+        setTimeout(() => {
+            container.classList.remove("container-hide")
+            container.classList.add("container-show")
+        }, 50)
+    }
+    uindow.exlg_dialog_board.hide_dialog = function () {
+        container.classList.add("container-hide")
+        container.classList.remove("container-show")
+        setTimeout(() => wrapper.style.display="none", wait_time)
+        header.innerHTML = '&nbsp;'
+        content.innerHTML = ''
+    }
+    uindow.exlg_dialog_board.accept_dialog = function () {
+        uindow.exlg_dialog_board._ac_func(uindow.exlg_dialog_board.hide_dialog)
+        if(uindow.exlg_dialog_board.autoquit) uindow.exlg_dialog_board.hide_dialog()
+    }
+    container.onclick = (e) => e.stopPropagation()
+    close_btn.onclick = btn_cancel.onclick = () => uindow.exlg_dialog_board.hide_dialog()
+    btn_accept.onclick =  () => uindow.exlg_dialog_board.accept_dialog()
+    uindow.exlg_dialog_board.show_exlg_alert = function (text = "", title = "exlg 提醒您", onaccepted = (q) => {}, autoquit = true) {
+        uindow.exlg_dialog_board.autoquit = autoquit
+        uindow.exlg_dialog_board._ac_func = onaccepted
+        header.innerHTML = title
+        content.innerHTML = text
+        uindow.exlg_dialog_board.show_dialog()
+    }
+    let _mouse_down_on_wrapper = false
+    container.onmousedown = (e) => e.stopPropagation()
+    wrapper.onmousedown = (e) => {
+        _mouse_down_on_wrapper = true
+    }
+    wrapper.onmouseup = (e) => {
+        if (_mouse_down_on_wrapper) uindow.exlg_dialog_board.hide_dialog()
+        _mouse_down_on_wrapper = false
+    }
+    uindow.exlg_alert = uindow.exlg_dialog_board.show_exlg_alert
+},`
+/* input for our badge register */
+input[exlg-badge-register] {
+    outline: none;
+    display: inline-block;
+    width: auto;
+    padding: 0.5em;
+    /* font-size: 1.6rem; */
+    line-height: 1.2;
+    color: #555;
+    vertical-align: middle;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    border-radius: 0;
+    -webkit-appearance: none;
+    -webkit-transition: border-color .15s ease-in-out,-webkit-box-shadow .15s ease-in-out;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+input[exlg-badge-register]:focus {
+    border: 1px solid #3bb4f2;
+}
+body {
+    margin: 0px;
+}
+.exlg-dialog-footer {
+    bottom: 0px;
+    position: absolute;
+    right: 0px;
+    padding: 10px 6px;
+}
+/*
+.exlg-dialog-container.container-show:hover > .exlg-dialog-btn.exlg-dialog-btn-confirm {
+    background: rgba(30, 140, 200, 0.80);
+}
+.exlg-dialog-btn.exlg-dialog-btn-confirm {
+    background: rgba(30, 140, 200, 0.20);
+}
+*/
+.exlg-dialog-container.container-show:hover > .exlg-dialog-btn {
+    background: rgba(255, 255, 255, 0.80);
+}
+.exlg-dialog-btn {
+    margin: 0px 4px;
+    display: inline-block;
+    float: right;
+    color: #666;
+    min-width: 75px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.20);
+    padding: 7px 10px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+.exlg-dialog-container.container-hide {
+    opacity: 0;
+}
+.exlg-dialog-container.container-show:hover {
+    background: rgba(250, 250, 250, 0.80);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+    opacity: 1;
+}
+.exlg-dialog-container {
+    filter: blur(0);
+    position: relative;
+    opacity: 0.75;
+    background: rgba(204, 204, 204, 0.20);
+    width: 500px;
+    min-height: 300px;
+    border-radius: 5px;
+    margin: 0 auto;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+    font-size: 16px;
+    line-height: 1.5;
+    /* transition: all .4s; */
+    backdrop-filter: blur(20px);
+}
+.exlg-dialog-wrapper {
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    background: rgba(0, 0, 0, 0);
+    width: 100%;
+    height: 100%;
+    /* opacity: 0.2;*/
+    /* vertical-align: middle; */
+    align-items: center;
+    display: table-cell;
+}
+.exlg-dialog-header {
+    height: auto;
+    border-bottom: 1px solid #eee;
+    padding: 11px 20px;
+}
+.exlg-dialog-body {
+    text-align: center;
+    margin-bottom: 50px;
+    padding: 20px 30px;
+    padding-bottom: 10px;
+}
+#header-right {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0);
+    color: red;
+    right: 10px;
+    top: 10px;
+    text-align: center;
+}
+`)
+
 mod.reg("update-log", "更新日志显示", "@/.*", {
     last_version: { ty: "string", priv: true },
 }, ({ msto }) => {
@@ -613,22 +1114,22 @@ mod.reg("update-log", "更新日志显示", "@/.*", {
     case "==":
         break
     case "<<":
-        lg_alert(fix_html(update_log), `extend-luogu ver. ${version} 更新日志`)
+        exlg_alert(fix_html(update_log), `extend-luogu ver. ${version} 更新日志`)
     case ">>":
         msto.last_version = version
     }
 }, `
 .exlg-update-log-text {
-    overflow-x: scroll;
+    overflow-x: auto;
     white-space: nowrap;
-}
-.exlg-update-log-text > div {
-    float: left;
+    text-align: left;
+    border: 1px solid #dedede;
 }
 `)
 
 mod.reg("emoticon", "表情输入", [ "@/paste", "@/discuss/.*" ], {
-    show: { ty: "boolean", dft: true }
+    show: { ty: "boolean", dft: true },
+    height_limit: { ty: "boolean", dft: true }
 }, ({ msto }) => {
     const emo = [
         { type: "emo", name: [ "kk" ], slug: "0" },
@@ -660,13 +1161,15 @@ mod.reg("emoticon", "表情输入", [ "@/paste", "@/discuss/.*" ], {
         { type: "emo", name: [ "kl" ], slug: "q" },
         { type: "emo", name: [ "yiw" ], slug: "r" },
         { type: "emo", name: [ "dk" ], slug: "s" },
+        { type: "txt", name: [ "sto" ], slug: "gg", name_display: "sto", width: 40 },
+        { type: "txt", name: [ "orz" ], slug: "gh", name_display: "orz", width: 40 },
+        { type: "txt", name: [ "qwq" ], slug: "g5", name_display: "qwq", width: 40 },
         { type: "txt", name: [ "hqlm" ], slug: "l0", name_display: "火前留名" },
         { type: "txt", name: [ "sqlm" ], slug: "l1", name_display: "山前留名" },
         { type: "txt", name: [ "xbt" ], slug: "g1", name_display: "屑标题" },
         { type: "txt", name: [ "iee", "wee" ], slug: "g2", name_display: "我谔谔" },
         { type: "txt", name: [ "kg" ], slug: "g3", name_display: "烤咕" },
         { type: "txt", name: [ "gl" ], slug: "g4", name_display: "盖楼" },
-        { type: "txt", name: [ "qwq" ], slug: "g5", name_display: "QωQ" },
         { type: "txt", name: [ "wyy" ], slug: "g6", name_display: "无意义" },
         { type: "txt", name: [ "wgzs" ], slug: "g7", name_display: "违规紫衫" },
         { type: "txt", name: [ "tt" ], slug: "g8", name_display: "贴贴" },
@@ -677,8 +1180,6 @@ mod.reg("emoticon", "表情输入", [ "@/paste", "@/discuss/.*" ], {
         { type: "txt", name: [ "cmzz" ], slug: "gd", name_display: "臭名昭著" },
         { type: "txt", name: [ "zyx" ], slug: "ge", name_display: "致远星" },
         { type: "txt", name: [ "zh" ], slug: "gf", name_display: "祝好" },
-        { type: "txt", name: [ "sto" ], slug: "gg", name_display: "sto" },
-        { type: "txt", name: [ "orz" ], slug: "gh", name_display: "orz" },
     ]
 
     const emo_url = name => `//图.tk/${name}`
@@ -687,22 +1188,36 @@ mod.reg("emoticon", "表情输入", [ "@/paste", "@/discuss/.*" ], {
 
     if (! $menu.length) return
 
+    const $emo_menu = $menu.clone().addClass("exlg-emo")
+    $menu.after($emo_menu)
+    $emo_menu[0].innerHTML = ""
+
     $("<br />").appendTo($menu)
     $(".mp-editor-ground").addClass("exlg-ext")
 
-    const $ground = $(".mp-editor-ground"), $show_hide = $menu.children().first().clone(true).addClass("exlg-unselectable")
+    const $ground = $(".mp-editor-ground"), $show_hide = $menu.children().first().clone(true).addClass("exlg-unselectable"), $set_height = $menu.children().first().clone(true).addClass("exlg-unselectable")
     $menu.children().last().before($show_hide)
+    $menu.children().last().before($set_height)
     $show_hide.children()[0].innerHTML = (msto.show) ? "隐藏" : "显示"
-    if (msto.show) $menu.addClass("exlg-show-emo"), $ground.addClass("exlg-show-emo")
+    if (msto.show) $emo_menu.addClass("exlg-show-emo"), $ground.addClass("exlg-show-emo")
     $show_hide.on("click", () => {
         $show_hide.children()[0].innerHTML = ["显示", "隐藏"][["隐藏", "显示"].indexOf($show_hide.children()[0].innerHTML)]
-        $menu.toggleClass("exlg-show-emo")
+        $emo_menu.toggleClass("exlg-show-emo")
         $ground.toggleClass("exlg-show-emo")
         msto.show = ! msto.show
     })
+    $set_height.children()[0].innerHTML = (msto.height_limit) ? "展开" : "收起"
+    if (msto.height_limit) $emo_menu.addClass("exlg-show-emo-short"), $ground.addClass("exlg-show-emo-short")
+    else $emo_menu.addClass("exlg-show-emo-long"), $ground.addClass("exlg-show-emo-long")
+    $set_height.on("click", () => {
+        $set_height.children()[0].innerHTML = ["收起", "展开"][["展开", "收起"].indexOf($set_height.children()[0].innerHTML)]
+        $emo_menu.toggleClass("exlg-show-emo-short").toggleClass("exlg-show-emo-long")
+        $ground.toggleClass("exlg-show-emo-short").toggleClass("exlg-show-emo-long")
+        msto.height_limit = ! msto.height_limit
+    })
 
     emo.forEach(m => {
-        $((m.type === "emo")?
+        const $emo = $((m.type === "emo")?
             `<button class="exlg-emo-btn" exlg="exlg"><img src="${emo_url(m.slug)}" /></button>`
             :
             `<button class="exlg-emo-btn" exlg="exlg">${m.name_display}</button>`
@@ -710,19 +1225,28 @@ mod.reg("emoticon", "表情输入", [ "@/paste", "@/discuss/.*" ], {
             .trigger("focus")
             .val(`![](${emo_url(m.slug)})`)
             .trigger("input")
-        ).appendTo($menu)
+        ).appendTo($emo_menu)
+        if (m.width) $emo.css("width", m.width + "px")
+        else if(m.type === "emo") $emo.css("width", "40px")
+        else $emo.css("width", "83px")
     })
-    $menu.append("<div style='height: .35em'></div>")
+    $emo_menu.append("<div style='height: .35em'></div>")
 
+    /*
     $txt.on("input", e => {
         if (e.originalEvent.data === "/")
             mdp.content = mdp.content.replace(/\/[0-9a-z]\//g, (_, emo_txt) =>
                 `![](` + emo_url(emo.find(m => m.includes(emo_txt))) + `)`
             )
     })
+    */
+    // Hack: 监听输入/，类似qq的表情快捷键功能。但是锅了，所以删掉力
 }, `
-    .mp-editor-ground.exlg-ext.exlg-show-emo {
-        top: 6em !important;
+    .mp-editor-ground.exlg-ext.exlg-show-emo.exlg-show-emo-long {
+        top: 8.25em !important;
+    }
+    .mp-editor-ground.exlg-ext.exlg-show-emo.exlg-show-emo-short {
+        top: 4.75em !important;
     }
     .mp-editor-menu > br ~ li {
         position: relative;
@@ -730,9 +1254,15 @@ mod.reg("emoticon", "表情输入", [ "@/paste", "@/discuss/.*" ], {
         margin: 0;
         padding: 5px 1px;
     }
-    .mp-editor-menu.exlg-show-emo {
+    .mp-editor-menu.exlg-show-emo.exlg-show-emo-long {
         height: 6em !important;
         overflow: auto;
+        background-color: #fff;
+    }
+    .mp-editor-menu.exlg-show-emo.exlg-show-emo-short {
+        height: 2.5em !important;
+        overflow: auto;
+        background-color: #fff;
     }
     .exlg-emo-btn {
         position: relative;
@@ -747,6 +1277,9 @@ mod.reg("emoticon", "表情输入", [ "@/paste", "@/discuss/.*" ], {
     .exlg-emo-btn:hover {
         background-color: #f3f3f3;
         top: -3px;
+    }
+    .exlg-emo, .exlg-ext {
+        transition: all .15s;
     }
 `)
 
@@ -785,8 +1318,8 @@ mod.reg_user_tab("user-intro-ins", "主页指令", "main", null, null, () => {
     }
 `)
 
-let last_ptr = -1, last_board = "submittedProblems"
-mod.reg_hook_new("user-problem-color", "题目颜色数量和比较", "@/user/.*", {
+let last_ptr = -1, last_board = "submittedProblems", cosflag = -1
+mod.reg_hook_new("user-problem-color", "题目颜色数量和比较", "@/user/[0-9]{0,}.*", {
     problem_compare: { ty: "boolean", strict: true, dft: true, info: ["AC compare", "AC题目比较"] }
 }, ({ msto, args }) => {
     const color = [
@@ -799,13 +1332,36 @@ mod.reg_hook_new("user-problem-color", "题目颜色数量和比较", "@/user/.*
         [ 157, 61, 207 ],
         [ 14, 29, 105 ]
     ]
+    const func = async ($prb, _flag) => {
+        const content = await lg_content(`/user/${ uindow._feInjection.currentUser.uid }`)
+        const my = content.currentData.passedProblems
+        const ta = uindow._feInjection.currentData.passedProblems
+        let same = 0
+        if (_flag) {
+            const $ps = $prb[1]
+            $ps.find("a").each((d, p, $p = $(p)) => {
+                if (my.some(m => m.pid === ta[d].pid)) {
+                    same ++
+                    $p.css("backgroundColor", "rgba(82, 196, 26, 0.3)")
+                }
+            })
+        }
+        
+        $("#exlg-problem-count-1").html(`<span class="exlg-counter" exlg="exlg">${ ta.length } <> ${ my.length } : ${same}`
+            + `<i class="exlg-icon exlg-info" name="ta 的 &lt;&gt; 我的 : 相同"></i></span>`)
+    }
     const _color = id => `rgb(${color[id][0]}, ${color[id][1]}, ${color[id][2]})`
+    if (typeof(args) === "object" && args.message === "Add Compare for 0-0 new user.") {
+        if ((! msto.problem_compare) || uindow._feInjection.currentData.user.uid === uindow._feInjection.currentUser.uid) return
+        func([114514, 1919810], false)
+        return
+    }
     args.forEach(arg => {
         if (arg.target.href === "javascript:void 0") return  // Hack: 这行绝对不能删！！！不知道为什么钩子那里会放 Js void0 过 check 删了就等着当场原地爆炸吧
         // console.log("arg: ",arg.target, arg)
         // if (! uindow._feInjection.currentData[arg.board_id][arg.position])
         arg.target.style.color = _color([uindow._feInjection.currentData[arg.board_id][arg.position].difficulty])
-        if (arg.board_id === "passedProblems" && arg.position === uindow._feInjection.currentData["passedProblems"].length - 1) { // Note: 染色染到最后一个
+        if (arg.board_id === "passedProblems" && arg.position === uindow._feInjection.currentData["passedProblems"].length - 1 || (uindow._feInjection.currentData["passedProblems"].length === 0 && arg.board_id === "submittedProblems" && arg.position === uindow._feInjection.currentData["submittedProblems"].length - 1)) { // Note: 染色染到最后一个
             $(".exlg-counter").remove()
             const gf = arg.target.parentNode.parentNode.parentNode.parentNode
             const $prb = [$(gf.firstChild.childNodes[2]), $(gf.lastChild.childNodes[2])]
@@ -817,40 +1373,57 @@ mod.reg_hook_new("user-problem-color", "题目颜色数量和比较", "@/user/.*
             }
 
             if ((! msto.problem_compare) || uindow._feInjection.currentData.user.uid === uindow._feInjection.currentUser.uid) return
-            const func = async () => {
-                const content = await lg_content(`/user/${ uindow._feInjection.currentUser.uid }`)
-                const my = content.currentData.passedProblems
-                const ta = uindow._feInjection.currentData.passedProblems
-                let same = 0
-                const $ps = $prb[1]
-                $ps.find("a").each((d, p, $p = $(p)) => {
-                    if (my.some(m => m.pid === ta[d].pid)) {
-                        same ++
-                        $p.css("backgroundColor", "rgba(82, 196, 26, 0.3)")
-                    }
-                })
-                $("#exlg-problem-count-1").html(`<span class="exlg-counter" exlg="exlg">${ ta.length } <> ${ my.length } : ${same}`
-                    + `<i class="exlg-icon exlg-info" name="ta 的 &lt;&gt; 我的 : 相同"></i></span>`)
-            }
-            func()
+            func($prb, true)
         }
     })
 }, (e) => {
     if (! /.*\/user\/.*#practice/.test(location.href)) return { result: false, args: { message: "Not at practice page." } }
+    if ((! uindow._feInjection.currentData.submittedProblems.length) && !uindow._feInjection.currentData.passedProblems.length) {
+        // console.log(e.target)
+        if (e.target.className === 'card padding-default') {
+            if ($(e.target).children(".problems").length) {
+                const my = uindow._feInjection.currentData[ [ "submittedProblems", "passedProblems" ][cosflag] ]
+                $(e.target.firstChild).after(`<span id="exlg-problem-count-${cosflag}" class="exlg-counter" exlg="exlg" style="margin-left: 5px">${ my.length }</span>`)
+                if (++ cosflag > 1) return { result: true, args: { message: "Add Compare for 0-0 new user." } }
+            }
+            else if($(e.target).children(".difficulty-tags").length) {
+                cosflag = 0
+            }
+        }
+        return { result: false, args: { message: "None." } }
+    }
+    if (! e.target.tagName) return { result: false, args: { message: "<!--->" } }
+    // console.log(last_ptr, last_board, e, e.target)
+    // if (typeof(e.target) === "undefined") {
+    //     console.log(e.target)
+    // }
     if (e.target.tagName.toLowerCase() !== "a" || e.target.className !== "color-default" || e.target.href.indexOf("/problem/") === -1)
         return { result: false, args: { message: "It's not a problem element" } }
     const tar = e.target, _pid = tar.href.slice(33), ucd = uindow._feInjection.currentData,
-        _onchange = [ucd.submittedProblems[0].pid, ucd.passedProblems[0].pid].includes(_pid)
+        _onchange = [(ucd.submittedProblems[0]?ucd.submittedProblems[0].pid:"exlg.cc!!"), (ucd.passedProblems[0]?ucd.passedProblems[0].pid:"QAQ")].includes(_pid)
     return {
         result: true,
         args: [{
             onchange: _onchange,
-            board_id: ["submittedProblems", "passedProblems"][(_onchange ? (last_board = [ucd.submittedProblems[0].pid, ucd.passedProblems[0].pid].indexOf(_pid)) : (last_board))],
+            board_id: ["submittedProblems", "passedProblems"][(_onchange ? (last_board = [(ucd.submittedProblems[0]?ucd.submittedProblems[0].pid:"Why not support Wdoi?qwq"), (ucd.passedProblems[0]?ucd.passedProblems[0].pid:"qwq~ orz cxy")].indexOf(_pid)) : (last_board))],
             position: (_onchange ? (last_ptr = 0) : (++ last_ptr)),
             target: tar
         }]
     }
-}, () => [],`
+}, () => {
+    // console.log(uindow._feInjection.currentData.submittedProblems.length, uindow._feInjection.currentData.passedProblems.length)
+    if ((! uindow._feInjection.currentData.submittedProblems.length) && !uindow._feInjection.currentData.passedProblems.length) {
+        $(".exlg-counter").remove()
+        const $prb = $(".card.padding-default > .problems")
+        for (let i = 0; i < 2; ++ i) {
+            const $ps = $($prb[i])
+            const my = uindow._feInjection.currentData[ [ "submittedProblems", "passedProblems" ][i] ]
+            $ps.before(`<span id="exlg-problem-count-${i}" class="exlg-counter" exlg="exlg">${ my.length }</span>`)
+        }
+        return { message: "Add Compare for 0-0 new user." }
+    }
+    return []
+},`
     .main > .card > h3 {
         display: inline-block;
     }
@@ -876,15 +1449,15 @@ mod.reg("benben", "全网犇犇", "@/", {
             <path d="M16 8C16 6.84375 15.25 5.84375 14.1875 5.4375C14.6562 4.4375 14.4688 3.1875 13.6562 2.34375C12.8125 1.53125 11.5625 1.34375 10.5625 1.8125C10.1562 0.75 9.15625 0 8 0C6.8125 0 5.8125 0.75 5.40625 1.8125C4.40625 1.34375 3.15625 1.53125 2.34375 2.34375C1.5 3.1875 1.3125 4.4375 1.78125 5.4375C0.71875 5.84375 0 6.84375 0 8C0 9.1875 0.71875 10.1875 1.78125 10.5938C1.3125 11.5938 1.5 12.8438 2.34375 13.6562C3.15625 14.5 4.40625 14.6875 5.40625 14.2188C5.8125 15.2812 6.8125 16 8 16C9.15625 16 10.1562 15.2812 10.5625 14.2188C11.5938 14.6875 12.8125 14.5 13.6562 13.6562C14.4688 12.8438 14.6562 11.5938 14.1875 10.5938C15.25 10.1875 16 9.1875 16 8ZM11.4688 6.625L7.375 10.6875C7.21875 10.8438 7 10.8125 6.875 10.6875L4.5 8.3125C4.375 8.1875 4.375 7.96875 4.5 7.8125L5.3125 7C5.46875 6.875 5.6875 6.875 5.8125 7.03125L7.125 8.34375L10.1562 5.34375C10.3125 5.1875 10.5312 5.1875 10.6562 5.34375L11.4688 6.15625C11.5938 6.28125 11.5938 6.5 11.4688 6.625Z"></path>
         </svg>
     `
-    const check = lv => lv <= 3 ? "" : check_svg.replace("%", lv <= 5 ? "#5eb95e" : lv <= 8 ? "#3498db" : "#f1c40f")
+    const check = lv => lv <= 3 ? "" : check_svg.replace("%", lv <= 5 ? "#5eb95e" : lv <= 7 ? "#3498db" : "#f1c40f")
 
-    const oriloadfeed = unsafeWindow.loadFeed
+    const oriloadfeed = uindow.loadFeed
 
-    unsafeWindow.loadFeed = function () {
-        if (unsafeWindow.feedMode==="all-exlg") {
+    uindow.loadFeed = function () {
+        if (uindow.feedMode==="all-exlg") {
             GM_xmlhttpRequest({
                 method: "GET",
-                url: (msto.source === "o2") ? (`https://service-ig5px5gh-1305163805.sh.apigw.tencentcs.com/release/APIGWHtmlDemo-1615602121`) : (`https://bens.rotriw.com/api/list/proxy?page=${unsafeWindow.feedPage}`),
+                url: (msto.source === "o2") ? (`https://service-ig5px5gh-1305163805.sh.apigw.tencentcs.com/release/APIGWHtmlDemo-1615602121`) : (`https://bens.rotriw.com/api/list/proxy?page=${uindow.feedPage}`),
                 onload: (res) => {
                     const e = JSON.parse(res.response)
                     e.forEach(m => $(`
@@ -932,7 +1505,7 @@ mod.reg("benben", "全网犇犇", "@/", {
                 },
                 onerror: error
             })
-            // unsafeWindow.feedPage++
+            // uindow.feedPage++
             // $("#feed-more").children("a").text("点击查看更多...")
         }
         else{
@@ -950,11 +1523,11 @@ mod.reg("benben", "全网犇犇", "@/", {
             if (msto.source === "o2") {
                 $("#feed-more").hide()
             }
-            unsafeWindow.feedPage=1
-            unsafeWindow.feedMode="all-exlg"
+            uindow.feedPage=1
+            uindow.feedMode="all-exlg"
             $("li.am-comment").remove()
 
-            unsafeWindow.loadFeed()
+            uindow.loadFeed()
         })
 })
 
@@ -1617,10 +2190,10 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
         $("mi").remove();
         $("annotation").remove();
         $("#translate").remove();
-        $transborad = $(`<div data-v-796309f8="" class="card padding-default" id="translate" data-v-6febb0e8="">
+        $transborad = $(`<div data-v-f9624136="" data-v-2017244a="" class="card padding-default" id="translate" data-v-6febb0e8="">
             <h3 data-v-2017244a="" data-v-796309f8="" class="lfe-h3">翻译</h3>
             <p>框选内容，点击按钮即可翻译！</p>
-            <button data-v-370e72e2="" data-v-43063e73="" type="button" id="translate-button" class="lfe-form-sz-middle" data-v-52820d90="" style="border-color: rgb(52, 152, 219); background-color: rgb(52, 152, 219);">翻译</button>
+            <button data-v-7ade990c="" data-v-43063e73="" type="button" id="translate-button" class="lfe-form-sz-middle" data-v-52820d90="" style="border-color: rgb(52, 152, 219); background-color: rgb(52, 152, 219);">翻译</button>
         </div>`);
         $transborad.prependTo($("section.side"))
         $transbutton = $("button#translate-button");
@@ -1712,7 +2285,7 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
 
         const beDoing = (viewset, Doing, pageid) => {
             $("#cancel-doing-problem").remove();
-            $cp = $(`<button data-v-370e72e2="" data-v-43063e73="" type="button" class="lfe-form-sz-middle" data-v-52820d90="" id="cancel-doing-problem" style="border-color: rgb(221, 81, 76); background-color: rgb(221, 81, 76);">取消做题</button>`);
+            $cp = $(`<button data-v-7ade990c="" data-v-43063e73="" type="button" class="lfe-form-sz-middle" data-v-52820d90="" id="cancel-doing-problem" style="border-color: rgb(221, 81, 76); background-color: rgb(221, 81, 76);">取消做题</button>`);
             $cp.hover(
                 function(){ $cp.css("background-color", "rgb(221, 81, 76, 0.9)");},
                 function(){ $cp.css("background-color", "rgb(221, 81, 76)");});
@@ -1759,7 +2332,7 @@ mod.reg_hook("exview", "读题功能", ["@/record/.*", "@/problem/P\\d+(\\#submi
 
                 $("#timer-board").remove();
                 $(`
-                    <div data-v-796309f8="" class="card padding-default" id="timer-board" data-v-6febb0e8="">
+                    <div data-v-f9624136="" class="card padding-default" id="timer-board" data-v-6febb0e8="">
                         <h2 data-v-796309f8="" class="lfe-h2" >
                             本题倒计时还有 ${hour > 0? hour + " 小时": ""} ${minute > 0? minute + " 分": ""} ${sec > 0? sec + " 秒钟": ""}
                         </h2>
@@ -2336,7 +2909,6 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
 }
 `)
 
-
 mod.reg("rand-problem-ex", "随机跳题ex", "@/", {
     exrand_difficulty: {
         ty: "tuple",
@@ -2457,8 +3029,8 @@ mod.reg("rand-problem-ex", "随机跳题ex", "@/", {
     <br>
     <ul></ul>
     </span>`).appendTo($btn_list).hide()
-        .mouseenter(() => {mouse_on_board = true})
-        .mouseleave(() => {
+        .on("mouseenter", () => { mouse_on_board = true })
+        .on("mouseleave", () => {
             mouse_on_board = false
             if (!mouse_on_dash) {
                 $board.hide()
@@ -2503,7 +3075,7 @@ mod.reg("rand-problem-ex", "随机跳题ex", "@/", {
         })
     }, [$exrand_diff, dif_list, msto.exrand_difficulty], [$exrand_srce, src_list, msto.exrand_source])
 
-    $("#exlg-dash-0").mouseenter(() => {
+    $("#exlg-dash-0").on("mouseenter", () => {
         mouse_on_dash = true
 
         $.double(([$p, mproxy]) => {
@@ -2515,7 +3087,7 @@ mod.reg("rand-problem-ex", "随机跳题ex", "@/", {
         }, [$exrand_diff, msto.exrand_difficulty], [$exrand_srce, msto.exrand_source]) // Hack: 防止开两个页面瞎玩的情况
         $board.show() // Hack: 鼠标放在dash上开window
     })
-        .mouseleave(() => {
+        .on("mouseleave", () => {
             mouse_on_dash = false // Hack: 离开dash和board超过200ms直接关掉
             if (!mouse_on_board) {
                 setTimeout(() => {
@@ -2580,20 +3152,6 @@ mod.reg("rand-problem-ex", "随机跳题ex", "@/", {
     font-size: 12px;
     margin-left: 1px;
     margin-right: 1px;
-}
-.exlg-window {
-    position: absolute;
-    top: 35px;
-    left: 0px;
-    z-index: 65536;
-    display: none;
-    width: 250px;
-    height: 300px;
-    padding: 5px;
-    background: white;
-    color: black;
-    border-radius: 7px;
-    box-shadow: rgb(187 227 255) 0px 0px 7px;
 }
 .exrand-enabled{
     width: 49%;
@@ -2732,14 +3290,14 @@ mod.reg_hook_new("rand-training-problem", "题单内随机跳题", "@/training/[
             })
 
             if (!tInfo.problemCount)
-                return lg_alert("题单不能为空")
+                return exlg_alert("题单不能为空")
             else if (!candProbList.length) {
                 if (ptypes === 1)
-                    return lg_alert("您已经做完所有新题啦！")
+                    return exlg_alert("您已经做完所有新题啦！")
                 else if (ptypes === 2)
-                    return lg_alert("您已经订完所有错题啦！")
+                    return exlg_alert("您已经订完所有错题啦！")
                 else
-                    return lg_alert("您已经切完所有题啦！")
+                    return exlg_alert("您已经切完所有题啦！")
             }
 
             const pid = ~~ (Math.random() * 1.e6) % candProbList.length
@@ -2807,6 +3365,78 @@ mod.reg("dbc-jump", "双击题号跳题", "@/.*", null, () => {
     })
 })
 
+mod.reg("hide-solution", "隐藏题解", "@/problem/solution/.*", {
+    hidesolu: { ty: "boolean", dft: false, info: ["Hide Solution", "隐藏题解"] }
+}, ({ msto }) => (msto.hidesolu) ? (GM_addStyle(".item-row { display: none; }")) : "memset0珂爱")
+
+mod.reg_hook_new("back-to-contest", "返回比赛题单", [
+    "@/problem/AT[1-9][0-9]{0,}\\?contestId=[1-9][0-9]{0,}",
+    "@/problem/CF[1-9][0-9]{0,}[A-Z]{1,1}[0-9]{0,1}\\?contestId=[1-9][0-9]{0,}",
+    "@/problem/SP[1-9][0-9]{0,}\\?contestId=[1-9][0-9]{0,}",
+    "@/problem/P[1-9][0-9]{3,}\\?contestId=[1-9][0-9]{0,}",
+    "@/problem/UVA[1-9][0-9]{2,}\\?contestId=[1-9][0-9]{0,}",
+    "@/problem/U[1-9][0-9]{0,}\\?contestId=[1-9][0-9]{0,}",
+    "@/problem/T[1-9][0-9]{0,}\\?contestId=[1-9][0-9]{0,}",
+], null, ({ args }) => {
+    const $info_rows = args.$info_rows, $pre = $(`<a class="exlg-back-to-contest"></a>`),
+        cid = args.cid, pid = args.pid
+    if ((! pid) || (! cid)) return
+    console.log(cid, pid, $info_rows)
+    // console.log("114514", $(".info-rows"), $pre[0].childNodes[1])
+    $pre.attr("href", `/contest/${ cid }#problems`)
+    $pre.html(`<svg data-v-450d4937="" data-v-303bbf52="" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="door-open" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" class="svg-inline--fa fa-door-open fa-w-20"><path data-v-450d4937="" data-v-303bbf52="" fill="currentColor" d="M624 448h-80V113.45C544 86.19 522.47 64 496 64H384v64h96v384h144c8.84 0 16-7.16 16-16v-32c0-8.84-7.16-16-16-16zM312.24 1.01l-192 49.74C105.99 54.44 96 67.7 96 82.92V448H16c-8.84 0-16 7.16-16 16v32c0 8.84 7.16 16 16 16h336V33.18c0-21.58-19.56-37.41-39.76-32.17zM264 288c-13.25 0-24-14.33-24-32s10.75-32 24-32 24 14.33 24 32-10.75 32-24 32z" class=""></path></svg>返回列表`)
+    $pre.appendTo($info_rows)
+}, (e) => {
+    const tar = e.target, cid = uindow._feInjection.currentData.contest.id,
+    pid = uindow._feInjection.currentData.problem.pid
+    // console.log(e.target, tar.tagName, tar.href ? tar.href.slice(tar.href.indexOf("/record/list")): "", tar.style)
+    // if (tar.tagName.toLowerCase() === "a" && (tar.href || "").includes("/record/list") && tar.href.slice(tar.href.indexOf("/record/list")) === `/record/list?pid=${ pid }&contestId=${ cid }`) console.log(tar, tar.parentNode)
+    return { args: { cid, pid, $info_rows: $(tar.parentNode) } ,result: (tar.tagName.toLowerCase() === "a" && (tar.href || "").includes("/record/list") && tar.href.slice(tar.href.indexOf("/record/list")) === `/record/list?pid=${ pid }&contestId=${ cid }`) }
+}, () => { return { cid: uindow._feInjection.currentData.contest.id, pid: uindow._feInjection.currentData.problem.pid, $info_rows: $(".info-rows").parent() } }, `
+.exlg-back-to-contest {
+    text-decoration: none;
+    float: right;
+    color: rgb(231, 76, 60);
+}
+.exlg-back-to-contest:hover {
+    color: rgb(231, 76, 60);
+}
+`)
+
+// let submission_color_tmp = {
+//   complete: true,
+//   difficulty_list: []
+// }
+
+mod.reg_hook_new("submission-color", "记录难度可视化", "@/record/list.*", null, async ({ args }) => {
+    if (args && args.type === "show") {
+        if ($("div.problem > div > a > span.pid").length && ! $(".exlg-difficulty-color").length) {
+            const u = await lg_content(location.href)
+            const dif = u.currentData.records.result.map((u) => u.problem.difficulty)
+            $("div.problem > div > a > span.pid").each((i, e, $e = $(e)) => {
+                $e.addClass("exlg-difficulty-color").addClass(`color-${dif[i]}`)
+            })
+        }
+        return
+    }
+    if ($(".exlg-difficulty-color").length) return
+    const u = await lg_content(location.href)
+    const dif = u.currentData.records.result.map((u) => u.problem.difficulty)
+    $(args.target).find("div.problem > div > a > span.pid").each((i, e, $e = $(e)) => {
+        $e.addClass("exlg-difficulty-color").addClass(`color-${dif[i]}`)
+    })
+}, (e) => {
+    const tar = e.target
+    // console.log(e.target, tar.tagName)
+    if (!tar || (! tar.tagName)) return { args: "<!--->", result: false }
+    if (tar.tagName.toLowerCase() === 'a' && (tar.href || "").includes("/problem/")/* && judge_problem(tar.href.slice(tar.href.indexOf("/problem/") + 9))*/ && ` ${ tar.parentNode.parentNode.className } `.includes(" problem ")) { //Note: 如果是标签的话，查看它的父亲是否为最后一个。如果是，更新数据。对于其他的不管。
+        if (! tar.parentNode.parentNode.parentNode.nextSibling) return { args: { type: "modified - update", target: tar.parentNode.parentNode.parentNode.parentNode }, result: true }
+        else return { args: { type: "modified - not the last one.", target: null }, result: false }
+    }
+    return { args: { type: "modified - not that one.", target: null }, result: false }
+}, () => { return { type: "show" } }, ``
+)
+
 let lst_page = -1
 mod.reg_hook_new("submission-color", "记录难度可视化", "@/record/list.*", null, () => {
     const func = async() => {
@@ -2827,7 +3457,6 @@ mod.reg_hook_new("submission-color", "记录难度可视化", "@/record/list.*",
 
 }, () => [], ``
 )
-
 
 mod.reg("keyboard-and-cli", "键盘操作与命令行", "@/.*", {
     lang: { ty: "enum", dft: "en", vals: [ "en", "zh" ] }
@@ -3100,7 +3729,7 @@ mod.reg("keyboard-and-cli", "键盘操作与命令行", "@/.*", {
 
 mod.reg_board("search-user", "查找用户名", null, ({ $board }) => {
     $board.html(`
-        <h2>查找用户</h2>
+        <h3>查找用户</h3>
         <div class="am-input-group am-input-group-primary am-input-group-sm">
             <input type="text" class="am-form-field" placeholder="例：kkksc03，可跳转站长主页" name="username" id="search-user-input">
         </div>
@@ -3122,24 +3751,33 @@ mod.reg_board("search-user", "查找用户名", null, ({ $board }) => {
     $("#search-user-input").keydown(e => { e.key === "Enter" && func() })
 })
 
-mod.reg_board("benben-ranklist", "犇犇龙王排行榜",null,({ $board })=>{
-    GM_xmlhttpRequest({
+mod.reg_board("benben-ranklist", "犇犇龙王排行榜", {
+    show: { ty: "boolean", dft: true }
+},({ msto, $board })=>{
+    // Note: Add the title.
+    $board.html(`<h3 id="bb-rnklst-h2">犇犇排行榜 <span id="bb-rnklst-btn" class="bb-rnklst-span"> [<a>${ msto.show ? "收起" : "展开" }</a>]</span><span style="float: right;" class="bb-rnklst-span"> [<a id="refresh-bbrnk">刷新</a>]</span></h3><div style="display: ${ msto.show ? "block" : "none" }" id="bb-rnklst-div"></div>`)
+    const $list = $board.find("#bb-rnklst-div"), $fbtn = $board.find("#bb-rnklst-btn > a").on("click", () => {
+        msto.show = ! msto.show
+        $fbtn.text(msto.show ? "收起" : "展开")
+        $list.toggle()
+    })
+    const refresh = () => GM_xmlhttpRequest({
         method: "GET",
         url: `https://bens.rotriw.com/ranklist?_contentOnly=1`,
         onload: function(res) {
-            let s="<h3>犇犇排行榜</h3>"
-            s+="<div>"
+            // console.log($board, $list)
+            // let s=`<h3 id="bb-rnklst-h2">犇犇排行榜 <span id="bb-rnklst-btn" class="bb-rnklst-span"> [<a>${ msto.show ? "收起" : "展开" }</a>]</span><span style="float: right;" class="bb-rnklst-span"> [<a id="refresh-bbrnk">刷新</a>]</span></h3>`
             $(JSON.parse(res.response)).each((index, obj) => {
-                s+=`<div class="bb-rnklst-${index + 1}">
+                $(`<div class="bb-rnklst-${index + 1}">
                     <span class="bb-rnklst-ind${(index < 9) ? (" bb-top-ten") : ("")}">${index + 1}.</span>
                     <a href="https://bens.rotriw.com/user/${obj[2]}">${obj[1]}</a>
                     <span style="float: right;">共 ${obj[0]} 条</span>
-                </div>`
+                </div>`).appendTo($list)
             })
-            s+="</div><br>"
-            $board.html(s)
         }
     })
+    $board.find("#refresh-bbrnk").on("click", () => { $list.html(""), refresh() })
+    refresh()
 },`
 .bb-rnklst-1 > .bb-rnklst-ind {
     color: var(--lg-red);
@@ -3155,6 +3793,9 @@ mod.reg_board("benben-ranklist", "犇犇龙王排行榜",null,({ $board })=>{
 }
 .bb-rnklst-ind.bb-top-ten {
     margin-right: 9px;
+}
+.bb-rnklst-span {
+    font-size: 1em;font-weight: normal;
 }
 `)
 
@@ -3215,6 +3856,14 @@ mod.reg("discussion-save", "讨论保存", [ "@/discuss/\\d+(\\?page\\=\\d+)*$" 
     background-color: rgb(255, 193, 22);
     color: #fff;
 }
+.am-btn-warning:hover {
+    border-color: #f37b1d;
+    background-color: #f37b1d;
+    color: #fff;
+}
+.am-btn {
+    outline: none;
+}
 `)
 
 mod.reg_chore("sponsor-list", "获取标签列表", "1D", "@/.*", {
@@ -3242,9 +3891,12 @@ mod.reg_hook_new("sponsor-tag", "标签显示", [ "@/", "@/paste", "@/discuss/.*
         // Note: 又 tm 重构啊啊啊啊啊啊啊啊啊啊啊 wdnmd
         if (! /\/user\/[1-9][0-9]{0,}/.test($e.attr("href"))) return
         $e.addClass("exlg-badge-username") // Note: 删掉这行会出刷犇犇的bug，一开始我以为每个元素被添加一次所以问题不大 但是事实证明我是傻逼
-        const tag = tag_list[$e.attr("href").substring("/user/".length)]
+        const user_uid = $e.attr("href").slice("/user/".length), tag = tag_list[user_uid]
         if (! tag) return
-        const $badge = $(`<span class="exlg-badge">${ tag }</span>`).on("click", () => location.href = "https://www.luogu.com.cn/paste/asz40850")
+        const $badge = $(user_uid === "100250" ? `<span class="am-badge am-radius lg-bg-red" style="margin-left: 4px;">${ tag }</span>` : `<span class="exlg-badge">${ tag }</span>`).off("contextmenu").on("contextmenu", () => false).on("mousedown", (e) => {
+            if (e.button === 2) location.href = "https://www.luogu.com.cn/paste/asz40850"
+            else if (e.button === 0) register_badge()
+        })
         let $tar = $e
         if ($tar.next().length && $tar.next().hasClass("sb_amazeui")) $tar = $tar.next()
         if ($tar.next().length && $tar.next().hasClass("am-badge")) $tar = $tar.next()
@@ -3328,13 +3980,15 @@ mod.reg("benben-emoticon", "犇犇表情输入", [ "@/" ], {
         { type: "emo", name: [ "kl" ], slug: "q" },
         { type: "emo", name: [ "yiw" ], slug: "r" },
         { type: "emo", name: [ "dk" ], slug: "s" },
+        { type: "txt", name: [ "sto" ], slug: "gg", name_display: "sto", width: 40 },
+        { type: "txt", name: [ "orz" ], slug: "gh", name_display: "orz", width: 40 },
+        { type: "txt", name: [ "qwq" ], slug: "g5", name_display: "qwq", width: 40 },
         { type: "txt", name: [ "hqlm" ], slug: "l0", name_display: "火前留名" },
         { type: "txt", name: [ "sqlm" ], slug: "l1", name_display: "山前留名" },
         { type: "txt", name: [ "xbt" ], slug: "g1", name_display: "屑标题" },
         { type: "txt", name: [ "iee", "wee" ], slug: "g2", name_display: "我谔谔" },
         { type: "txt", name: [ "kg" ], slug: "g3", name_display: "烤咕" },
         { type: "txt", name: [ "gl" ], slug: "g4", name_display: "盖楼" },
-        { type: "txt", name: [ "qwq" ], slug: "g5", name_display: "QωQ" },
         { type: "txt", name: [ "wyy" ], slug: "g6", name_display: "无意义" },
         { type: "txt", name: [ "wgzs" ], slug: "g7", name_display: "违规紫衫" },
         { type: "txt", name: [ "tt" ], slug: "g8", name_display: "贴贴" },
@@ -3345,13 +3999,11 @@ mod.reg("benben-emoticon", "犇犇表情输入", [ "@/" ], {
         { type: "txt", name: [ "cmzz" ], slug: "gd", name_display: "臭名昭著" },
         { type: "txt", name: [ "zyx" ], slug: "ge", name_display: "致远星" },
         { type: "txt", name: [ "zh" ], slug: "gf", name_display: "祝好" },
-        { type: "txt", name: [ "sto" ], slug: "gg", name_display: "sto" },
-        { type: "txt", name: [ "orz" ], slug: "gh", name_display: "orz" },
     ]
     const $txt = $("#feed-content"), emo_url = name => `//图.tk/${name}`, txt = $txt[0]
     $("#feed-content").before("<div id='emo-lst'></div>")
     emo.forEach(m => {
-        $((m.type === "emo")?
+        const $emo = $((m.type === "emo")?
             `<button class="exlg-emo-btn" exlg="exlg"><img src="${emo_url(m.slug)}" /></button>`
             :
             `<button class="exlg-emo-btn" exlg="exlg">${m.name_display}</button>`
@@ -3364,6 +4016,9 @@ mod.reg("benben-emoticon", "犇犇表情输入", [ "@/" ], {
             txt.setSelectionRange(str1.length, str1.length)
         }
         ).appendTo("#emo-lst")
+        if (m.width) $emo.css("width", m.width + "px")
+        else if(m.type === "emo") $emo.css("width", "40px")
+        else $emo.css("width", "83px")
     })
     $("#feed-content").before("<br>")
     $txt.on("input", e => {
@@ -3402,7 +4057,7 @@ $(() => {
             mod,
             log, error,
             springboard, version_cmp,
-            lg_alert, lg_content,
+            lg_alert, lg_content, register_badge,
             TM_dat: {
                 reload_dat: () => {
                     raw_dat = null
@@ -3429,12 +4084,12 @@ $(() => {
         }
         catch(err) {
             if (chance) {
-                lg_alert("存储代理加载失败，清存重试中……")
+                exlg_alert("存储代理加载失败，清存重试中……")
                 clear_dat()
                 init_sto(chance - 1)
             }
             else {
-                lg_alert("失败次数过多，自闭中。这里建议联系开发人员呢。")
+                exlg_alert("失败次数过多，自闭中。这里建议联系开发人员呢。")
                 throw err
             }
         }
