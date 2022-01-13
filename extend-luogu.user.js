@@ -1644,7 +1644,7 @@ mod.reg("rand-footprint", "随机足迹", "@/", {
                 <button class="am-btn am-btn-danger am-btn-sm" id="add-user">添加</button>
                 <button class="am-btn am-btn-primary am-btn-sm" id="remove-user">移除</button>
                 <button class="am-btn am-btn-group am-btn-sm" id="empty-user">一键清空</button>
-                <button class="am-btn am-btn-success am-btn-sm" id="goto-users-passed">跳转</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="goto-users-passed" style="margin-top: 5px">跳转</button>
                 <input type="checkbox" ${msto.checked? "checked=true": ""} id="check-ac">
                 包括已 AC 题目
             </p>
@@ -2495,9 +2495,9 @@ mod.reg("develop-training", "训练强化", "@/", null, () => {
             </div>
             <div>
                 比赛：
-                <button class="am-btn am-btn-warning am-btn-sm" id="practice-contest">练习赛</button>
-                <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest">CF 题</button>
-                <button class="am-btn am-btn-danger am-btn-sm" id="simulation-contest">模拟赛</button>
+                <button class="am-btn am-btn-warning am-btn-sm" id="practice-contest" style="margin-top: 5px">练习赛</button>
+                <button class="am-btn am-btn-success am-btn-sm" id="cf-multiple-contest" style="margin-top: 5px">CF 题</button>
+                <button class="am-btn am-btn-danger am-btn-sm" id="simulation-contest" style="margin-top: 5px">模拟赛</button>
             </div>
             <div id="prolist"></div>
         </div>
